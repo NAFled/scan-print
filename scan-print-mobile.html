@@ -34,7 +34,7 @@
 </head>
 <body>
 <div class="app">
-  <div class="header"><h1><span class="icon">⬡</span> Scan &amp; Print <span class="badge">Mobile</span> <span class="badge" style="background:var(--green)">v1.4</span></h1></div>
+  <div class="header"><h1><span class="icon">⬡</span> Scan &amp; Print <span class="badge">Mobile</span> <span class="badge" style="background:var(--green)">v1.5</span></h1></div>
   <div class="tab-bar"><button class="tab-btn active" data-tab="scanner">▦ Scanner</button><button class="tab-btn" data-tab="settings">⚙ Einstellungen</button><button class="tab-btn" data-tab="log">☰ Log</button></div>
   <div class="tab-content">
     <!-- SCANNER -->
@@ -224,7 +224,47 @@ async function nimSend(p){if(!S.nimWrite)throw new Error('Niimbot nicht verbunde
 async function printNim(v){if(!S.nimWrite)throw new Error('Niimbot nicht verbunden');const{wp,hp}=labelPx();const cv=renderLabel(v,wp,hp);const{data,bpl,h,w}=to1Bit(cv);const dn=parseInt($('niimbot-density').value)||3;await nimSend(nimPkt(0x21,[dn]));await nimSend(nimPkt(0x23,[1]));await nimSend(nimPkt(0xD1,[(h>>8)&0xFF,h&0xFF,(w>>8)&0xFF,w&0xFF]));await nimSend(nimPkt(0x15,[0,1]));await nimSend(nimPkt(0x01,[1]));await sleep(100);await nimSend(nimPkt(0x03,[1]));for(let y=0;y<h;y++){const ld=data.slice(y*bpl,(y+1)*bpl);await nimSend(nimPkt(0x85,[(y>>8)&0xFF,y&0xFF,0,bpl,...ld]));if(y%50===49)await sleep(20);}await nimSend(nimPkt(0xE3,[1]));await sleep(100);await nimSend(nimPkt(0xF3,[1]));}
 
 // ═══ STD PRINT CMDS ═══
-function genPrint(v){const l=$('print-lang').value,m=getO(),w=parseInt($('label-w').value)||50,h=parseInt($('label-h').value)||30,dw=w*8,dh=h*8;if(l==='zpl')return `^XA\n^PW${dw}\n^LL${dh}\n${m==='qr'?`^FO50,30\n^BQN,2,5\n^FDQA,${v}^FS\n^FO50,200\n^A0N,28,28\n^FD${v}^FS`:`^FO50,30\n^BCN,80,Y,N,N\n^FD${v}^FS\n^FO50,140\n^A0N,28,28\n^FD${v}^FS`}\n^XZ`;if(l==='epl')return `\nN\nq${dw}\nQ${dh},24\n${m==='qr'?`b50,30,Q,s5,"${v}"\nA50,200,0,3,1,1,N,"${v}"`:`B50,30,0,1,2,4,80,N,"${v}"\nA50,130,0,3,1,1,N,"${v}"`}\nP1\n`;if(l==='tspl')return `SIZE ${w} mm, ${h} mm\nGAP 2 mm, 0 mm\nCLS\n${m==='qr'?`QRCODE 50,30,L,5,A,0,"${v}"\nTEXT 50,200,"3",0,1,1,"${v}"`:`BARCODE 50,30,"128",80,1,0,2,2,"${v}"\nTEXT 50,130,"3",0,1,1,"${v}"`}\nPRINT 1,1\n`;if(l==='escpos'){const E='\x1B',G='\x1D';let c=E+'@'+E+'a\x01';if(m==='qr'){const n=v.length+3;c+=G+'(k\x04\x001A2\x00'+G+'(k\x03\x001C\x05'+G+'(k\x03\x001E\x31'+G+'(k'+String.fromCharCode(n&0xFF,(n>>8)&0xFF)+'1P0'+v+G+'(k\x03\x001Q0';}else c+=G+'h\x50'+G+'w\x02'+G+'H\x02'+G+'k\x49'+String.fromCharCode(v.length)+v;return c+'\n'+v+'\n'+G+'V\x41\x03';}return v;}
+function genPrint(v){
+const l=$('print-lang').value,m=getO(),w=parseInt($('label-w').value)||50,h=parseInt($('label-h').value)||30,dw=w*8,dh=h*8;
+if(l==='zpl'){
+  // Dynamic ZPL: center barcode/QR and maximize size
+  const margin=Math.round(dw*.03); // 3% margin
+  const fontH=Math.max(20,Math.round(dh*.08));
+  const gap=Math.round(dh*.02);
+  const availW=dw-margin*2;
+  const availH=dh-margin*2-fontH-gap;
+  if(m==='qr'){
+    // QR mag: ~29 modules for short data. mag = floor(availableSize / estimatedModules)
+    const estMod=29;
+    const maxSz=Math.min(availW,availH);
+    const mag=Math.max(1,Math.min(10,Math.floor(maxSz/estMod)));
+    const qrSz=mag*estMod;
+    const qrX=Math.round((dw-qrSz)/2);
+    const qrY=Math.round((dh-qrSz-gap-fontH)/2);
+    const txtY=qrY+qrSz+gap;
+    return `^XA\n^PW${dw}\n^LL${dh}\n^FO${qrX},${qrY}\n^BQN,2,${mag}\n^FDQA,${v}^FS\n^FO${margin},${txtY}\n^FB${availW},1,0,C,0\n^A0N,${fontH},${fontH}\n^FD${v}^FS\n^XZ`;
+  } else {
+    const bcH=Math.max(40,availH);
+    const bcX=margin;
+    const bcY=Math.round((dh-bcH-gap-fontH)/2);
+    const txtY=bcY+bcH+gap;
+    // ^BY sets bar width; ^BCN for Code128 centered
+    const barW=Math.max(1,Math.min(4,Math.floor(availW/120)));
+    return `^XA\n^PW${dw}\n^LL${dh}\n^FO${bcX},${bcY}\n^FB${availW},1,0,C,0\n^BY${barW}\n^BCN,${bcH},N,N,N\n^FD${v}^FS\n^FO${margin},${txtY}\n^FB${availW},1,0,C,0\n^A0N,${fontH},${fontH}\n^FD${v}^FS\n^XZ`;
+  }
+}
+if(l==='epl'){
+  const fontH=Math.round(dh*.08);const gap=Math.round(dh*.02);const availH=dh-fontH-gap-Math.round(dh*.06);
+  if(m==='qr'){const mag=Math.max(1,Math.min(10,Math.floor(Math.min(dw,availH)/29)));const sz=mag*29;const ox=Math.round((dw-sz)/2);const oy=Math.round((dh-sz-gap-fontH)/2);return `\nN\nq${dw}\nQ${dh},24\nb${ox},${oy},Q,s${mag},"${v}"\nA${Math.round((dw-v.length*12)/2)},${oy+sz+gap},0,3,1,1,N,"${v}"\nP1\n`;}
+  else{const bcH=Math.max(40,availH);const oy=Math.round((dh-bcH-gap-fontH)/2);return `\nN\nq${dw}\nQ${dh},24\nB${Math.round(dw*.05)},${oy},0,1,2,4,${bcH},N,"${v}"\nA${Math.round((dw-v.length*12)/2)},${oy+bcH+gap},0,3,1,1,N,"${v}"\nP1\n`;}
+}
+if(l==='tspl'){
+  const dpmm=8;const pxW=w*dpmm,pxH=h*dpmm;const fontH=Math.round(pxH*.08);const gap=Math.round(pxH*.02);const availH=pxH-fontH-gap-Math.round(pxH*.06);
+  if(m==='qr'){const mag=Math.max(1,Math.min(10,Math.floor(Math.min(pxW,availH)/29)));const sz=mag*29;const ox=Math.round((pxW-sz)/2);const oy=Math.round((pxH-sz-gap-fontH)/2);return `SIZE ${w} mm, ${h} mm\nGAP 2 mm, 0 mm\nCLS\nQRCODE ${ox},${oy},L,${mag},A,0,"${v}"\nTEXT ${Math.round(pxW/2)},${oy+sz+gap},"3",0,1,1,1,"${v}"\nPRINT 1,1\n`;}
+  else{const bcH=Math.max(40,availH);const oy=Math.round((pxH-bcH-gap-fontH)/2);return `SIZE ${w} mm, ${h} mm\nGAP 2 mm, 0 mm\nCLS\nBARCODE ${Math.round(pxW*.05)},${oy},"128",${bcH},1,0,2,2,"${v}"\nTEXT ${Math.round(pxW/2)},${oy+bcH+gap},"3",0,1,1,1,"${v}"\nPRINT 1,1\n`;}
+}
+if(l==='escpos'){const E='\x1B',G='\x1D';let c=E+'@'+E+'a\x01';if(m==='qr'){const n=v.length+3;const sz=Math.max(3,Math.min(12,Math.floor((w*8)/29)));c+=G+'(k\x04\x001A2\x00'+G+'(k\x03\x001C'+String.fromCharCode(sz)+G+'(k\x03\x001E\x31'+G+'(k'+String.fromCharCode(n&0xFF,(n>>8)&0xFF)+'1P0'+v+G+'(k\x03\x001Q0';}else{const bcH=Math.max(40,Math.round(h*8*.6));c+=G+'h'+String.fromCharCode(bcH)+G+'w\x02'+G+'H\x02'+G+'k\x49'+String.fromCharCode(v.length)+v;}return c+'\n'+v+'\n'+G+'V\x41\x03';}
+return v;}
 
 // ═══ PRINT DISPATCH ═══
 async function execPrint(v){const t=pType();let st='OK',err='';try{if(t==='phomemo')await printPho(v);else if(t==='niimbot')await printNim(v);else{const m=getM(),d=genPrint(v);if(m==='http')await printHTTP(d);else if(m==='cups')await printCUPS(d);else if(m==='bt')await printStdBT(d);}}catch(e){st='ERR';err=e.message||'Fehler';}S.log.unshift({id:Date.now(),value:v,status:st,error:err,time:new Date().toLocaleString('de-DE')});renderLog();updStatus(st==='OK'?'ok':'err',st==='OK'?'Gedruckt':'Fehler: '+err);toast(st==='OK'?'Gedruckt: '+v:'Fehler: '+err,st==='OK'?'ok':'err');save();}
