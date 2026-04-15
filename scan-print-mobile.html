@@ -34,7 +34,7 @@
 </head>
 <body>
 <div class="app">
-  <div class="header"><h1><span class="icon">⬡</span> Scan &amp; Print <span class="badge">Mobile</span> <span class="badge" style="background:var(--green)">v1.2</span></h1></div>
+  <div class="header"><h1><span class="icon">⬡</span> Scan &amp; Print <span class="badge">Mobile</span> <span class="badge" style="background:var(--green)">v1.3</span></h1></div>
   <div class="tab-bar"><button class="tab-btn active" data-tab="scanner">▦ Scanner</button><button class="tab-btn" data-tab="settings">⚙ Einstellungen</button><button class="tab-btn" data-tab="log">☰ Log</button></div>
   <div class="tab-content">
     <!-- SCANNER -->
@@ -142,10 +142,59 @@ function renderHist(){const e=$('history-list');if(!S.history.length){e.innerHTM
 window._rp=i=>{if(S.history[i])execPrint(S.history[i].value);};window._rl=i=>{if(S.log[i])execPrint(S.log[i].value);};
 
 // ═══ LABEL IMAGE PIPELINE ═══
-function renderLabel(v,wp,hp){const c=document.createElement('canvas');c.width=wp;c.height=hp;const x=c.getContext('2d');x.fillStyle='#FFF';x.fillRect(0,0,wp,hp);x.fillStyle='#000';const pad=Math.round(wp*.06),txtH=Math.round(hp*.15),bcH=hp-txtH-pad*2,mode=getO();
-if(mode==='qr'){try{const q=qrcode(0,'M');q.addData(v);q.make();const m=q.getModuleCount(),cs=Math.floor(Math.min(bcH,wp-pad*2)/m),sz=cs*m,ox=Math.round((wp-sz)/2),oy=pad;for(let r=0;r<m;r++)for(let c2=0;c2<m;c2++)if(q.isDark(r,c2))x.fillRect(ox+c2*cs,oy+r*cs,cs,cs);}catch(e){x.font=`bold ${Math.round(hp*.08)}px monospace`;x.textAlign='center';x.fillText('QR Err',wp/2,hp/2);}}
-else{try{const svg=$('bc-svg');JsBarcode(svg,v,{format:'CODE128',width:2,height:bcH,displayValue:false,margin:0,background:'#FFF',lineColor:'#000'});const rects=svg.querySelectorAll('rect');const sw=parseFloat(svg.getAttribute('width'))||1,sh=parseFloat(svg.getAttribute('height'))||1;const sx=(wp-pad*2)/sw,sy=bcH/sh;rects.forEach(r=>{const rx=parseFloat(r.getAttribute('x'))*sx,ry=parseFloat(r.getAttribute('y'))*sy,rw=Math.max(1,parseFloat(r.getAttribute('width'))*sx),rh=parseFloat(r.getAttribute('height'))*sy;if((r.getAttribute('fill')||'')=='#000000')x.fillRect(pad+rx,pad+ry,rw,rh);});}catch(e){x.font=`bold ${Math.round(hp*.08)}px monospace`;x.textAlign='center';x.fillText('BC Err',wp/2,hp/2);}}
-const fs=Math.min(Math.round(wp*.06),24);x.font=`bold ${fs}px monospace`;x.textAlign='center';x.fillText(v,wp/2,hp-Math.round(pad*.3),wp-pad*2);return c;}
+function renderLabel(v,wp,hp){
+const c=document.createElement('canvas');c.width=wp;c.height=hp;
+const x=c.getContext('2d');
+x.fillStyle='#FFF';x.fillRect(0,0,wp,hp);x.fillStyle='#000';
+const mode=getO();
+const padX=Math.round(wp*.08);
+const fs=Math.max(10,Math.min(Math.round(wp*.055),22));
+const txtH=Math.round(fs*1.4);
+const gap=Math.round(hp*.03);
+const availW=wp-padX*2;
+const availH=hp-txtH-gap-Math.round(hp*.06);
+
+if(mode==='qr'){
+  try{
+    const q=qrcode(0,'M');q.addData(v);q.make();
+    const m=q.getModuleCount();
+    const maxSz=Math.min(availH,availW);
+    const cs=Math.floor(maxSz/m);
+    const sz=cs*m;
+    const totalH=sz+gap+txtH;
+    const startY=Math.round((hp-totalH)/2);
+    const startX=Math.round((wp-sz)/2);
+    for(let r=0;r<m;r++)for(let c2=0;c2<m;c2++)if(q.isDark(r,c2))x.fillRect(startX+c2*cs,startY+r*cs,cs,cs);
+    x.font=`bold ${fs}px monospace`;x.textAlign='center';x.textBaseline='top';
+    x.fillText(v,wp/2,startY+sz+gap,availW);
+  }catch(e){x.font=`bold ${Math.round(hp*.08)}px monospace`;x.textAlign='center';x.textBaseline='middle';x.fillText('QR Err',wp/2,hp/2);}
+} else {
+  try{
+    const svg=$('bc-svg');
+    JsBarcode(svg,v,{format:'CODE128',width:2,height:availH,displayValue:false,margin:0,background:'#FFF',lineColor:'#000'});
+    const rects=svg.querySelectorAll('rect');
+    const sw=parseFloat(svg.getAttribute('width'))||1;
+    const sh=parseFloat(svg.getAttribute('height'))||1;
+    // Scale barcode to fit available width, keep aspect for height
+    const scaleX=availW/sw;
+    const bcDrawW=sw*scaleX;
+    const bcDrawH=Math.min(availH,sh*scaleX);
+    const scaleY=bcDrawH/sh;
+    const totalH=bcDrawH+gap+txtH;
+    const startY=Math.round((hp-totalH)/2);
+    const startX=Math.round((wp-bcDrawW)/2);
+    rects.forEach(r=>{
+      const rx=parseFloat(r.getAttribute('x'))*scaleX;
+      const ry=parseFloat(r.getAttribute('y'))*scaleY;
+      const rw=Math.max(1,parseFloat(r.getAttribute('width'))*scaleX);
+      const rh=parseFloat(r.getAttribute('height'))*scaleY;
+      if((r.getAttribute('fill')||'')==='#000000')x.fillRect(startX+rx,startY+ry,rw,rh);
+    });
+    x.font=`bold ${fs}px monospace`;x.textAlign='center';x.textBaseline='top';
+    x.fillText(v,wp/2,startY+bcDrawH+gap,availW);
+  }catch(e){x.font=`bold ${Math.round(hp*.08)}px monospace`;x.textAlign='center';x.textBaseline='middle';x.fillText('BC Err',wp/2,hp/2);}
+}
+return c;}
 function to1Bit(cv){const x=cv.getContext('2d'),d=x.getImageData(0,0,cv.width,cv.height).data,w=cv.width,h=cv.height,bpl=Math.ceil(w/8),r=new Uint8Array(bpl*h);for(let y=0;y<h;y++)for(let x2=0;x2<w;x2++){const i=(y*w+x2)*4,g=d[i]*.299+d[i+1]*.587+d[i+2]*.114;if(g<128)r[y*bpl+Math.floor(x2/8)]|=(1<<(7-(x2%8)));}return{data:r,w,h,bpl};}
 function labelPx(){const t=pType(),wm=parseInt($('label-w').value)||50,hm=parseInt($('label-h').value)||30;let dp=DPI203,mx=576;if(t==='phomemo'){const m=PHO_M[$('phomemo-model').value]||PHO_M.M221;dp=m.d;mx=m.mx;}else if(t==='niimbot'){const m=NIM_M[$('niimbot-model').value]||NIM_M.B1;dp=m.d;mx=m.mx;}let wp=Math.round(wm*dp);if(wp>mx)wp=mx;return{wp,hp:Math.round(hm*dp)};}
 
