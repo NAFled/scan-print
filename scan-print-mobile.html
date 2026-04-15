@@ -34,7 +34,7 @@
 </head>
 <body>
 <div class="app">
-  <div class="header"><h1><span class="icon">⬡</span> Scan &amp; Print <span class="badge">Mobile</span> <span class="badge" style="background:var(--green)">v1.3</span></h1></div>
+  <div class="header"><h1><span class="icon">⬡</span> Scan &amp; Print <span class="badge">Mobile</span> <span class="badge" style="background:var(--green)">v1.4</span></h1></div>
   <div class="tab-bar"><button class="tab-btn active" data-tab="scanner">▦ Scanner</button><button class="tab-btn" data-tab="settings">⚙ Einstellungen</button><button class="tab-btn" data-tab="log">☰ Log</button></div>
   <div class="tab-content">
     <!-- SCANNER -->
@@ -147,18 +147,19 @@ const c=document.createElement('canvas');c.width=wp;c.height=hp;
 const x=c.getContext('2d');
 x.fillStyle='#FFF';x.fillRect(0,0,wp,hp);x.fillStyle='#000';
 const mode=getO();
-const padX=Math.round(wp*.08);
-const fs=Math.max(10,Math.min(Math.round(wp*.055),22));
-const txtH=Math.round(fs*1.4);
-const gap=Math.round(hp*.03);
-const availW=wp-padX*2;
-const availH=hp-txtH-gap-Math.round(hp*.06);
+const fs=Math.max(10,Math.min(Math.round(wp*.05),20));
+const txtH=Math.round(fs*1.3);
+const gap=Math.round(hp*.02);
+const margin=Math.round(Math.min(wp,hp)*.03);
 
 if(mode==='qr'){
   try{
     const q=qrcode(0,'M');q.addData(v);q.make();
     const m=q.getModuleCount();
-    const maxSz=Math.min(availH,availW);
+    // Max QR size: fill label minus small margin, text line and gap
+    const maxW=wp-margin*2;
+    const maxH=hp-margin*2-txtH-gap;
+    const maxSz=Math.min(maxW,maxH);
     const cs=Math.floor(maxSz/m);
     const sz=cs*m;
     const totalH=sz+gap+txtH;
@@ -166,19 +167,20 @@ if(mode==='qr'){
     const startX=Math.round((wp-sz)/2);
     for(let r=0;r<m;r++)for(let c2=0;c2<m;c2++)if(q.isDark(r,c2))x.fillRect(startX+c2*cs,startY+r*cs,cs,cs);
     x.font=`bold ${fs}px monospace`;x.textAlign='center';x.textBaseline='top';
-    x.fillText(v,wp/2,startY+sz+gap,availW);
+    x.fillText(v,wp/2,startY+sz+gap,wp-margin*2);
   }catch(e){x.font=`bold ${Math.round(hp*.08)}px monospace`;x.textAlign='center';x.textBaseline='middle';x.fillText('QR Err',wp/2,hp/2);}
 } else {
   try{
+    const maxW=wp-margin*2;
+    const bcH=hp-margin*2-txtH-gap;
     const svg=$('bc-svg');
-    JsBarcode(svg,v,{format:'CODE128',width:2,height:availH,displayValue:false,margin:0,background:'#FFF',lineColor:'#000'});
+    JsBarcode(svg,v,{format:'CODE128',width:2,height:bcH,displayValue:false,margin:0,background:'#FFF',lineColor:'#000'});
     const rects=svg.querySelectorAll('rect');
     const sw=parseFloat(svg.getAttribute('width'))||1;
     const sh=parseFloat(svg.getAttribute('height'))||1;
-    // Scale barcode to fit available width, keep aspect for height
-    const scaleX=availW/sw;
+    const scaleX=maxW/sw;
     const bcDrawW=sw*scaleX;
-    const bcDrawH=Math.min(availH,sh*scaleX);
+    const bcDrawH=Math.min(bcH,sh*scaleX);
     const scaleY=bcDrawH/sh;
     const totalH=bcDrawH+gap+txtH;
     const startY=Math.round((hp-totalH)/2);
@@ -191,7 +193,7 @@ if(mode==='qr'){
       if((r.getAttribute('fill')||'')==='#000000')x.fillRect(startX+rx,startY+ry,rw,rh);
     });
     x.font=`bold ${fs}px monospace`;x.textAlign='center';x.textBaseline='top';
-    x.fillText(v,wp/2,startY+bcDrawH+gap,availW);
+    x.fillText(v,wp/2,startY+bcDrawH+gap,maxW);
   }catch(e){x.font=`bold ${Math.round(hp*.08)}px monospace`;x.textAlign='center';x.textBaseline='middle';x.fillText('BC Err',wp/2,hp/2);}
 }
 return c;}
