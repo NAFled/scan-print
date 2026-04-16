@@ -35,7 +35,7 @@
 </head>
 <body>
 <div class="app">
-  <div class="header"><h1><span class="icon">⬡</span> Scan &amp; Print <span class="badge">Mobile</span> <span class="badge" style="background:var(--green)">v1.7</span></h1></div>
+  <div class="header"><h1><span class="icon">⬡</span> Scan &amp; Print <span class="badge">Mobile</span> <span class="badge" style="background:var(--green)">v1.8</span></h1></div>
   <div class="tab-bar"><button class="tab-btn active" data-tab="scanner">▦ Scanner</button><button class="tab-btn" data-tab="settings">⚙ Einstellungen</button><button class="tab-btn" data-tab="log">☰ Log</button></div>
   <div class="tab-content">
     <!-- SCANNER -->
@@ -211,49 +211,99 @@ function btDC(){S.btChar=null;S.btSrv=null;$('bt-device-name').textContent='Nich
 async function autoReconnect(){if(!navigator.bluetooth?.getDevices)return;try{const devs=await navigator.bluetooth.getDevices();for(const d of devs){if(!d.gatt)continue;try{const ac=new AbortController();const to=setTimeout(()=>ac.abort(),4000);await new Promise((res,rej)=>{d.addEventListener('advertisementreceived',async()=>{clearTimeout(to);try{await attachBT(d);res();}catch(e){rej(e);}},{once:true});d.watchAdvertisements({signal:ac.signal}).catch(()=>{clearTimeout(to);rej(new Error('to'));});ac.signal.addEventListener('abort',()=>rej(new Error('to')));});return;}catch(e){}}}catch(e){}}
 async function bleChunk(ch,data,sz=512){for(let i=0;i<data.length;i+=sz){const c=data.slice(i,Math.min(i+sz,data.length));if(ch.properties.writeWithoutResponse)await ch.writeValueWithoutResponse(c);else await ch.writeValueWithResponse(c);if(data.length>sz)await sleep(20);}}
 
-// ═══ PHOMEMO (fixed: acceptAllDevices) ═══
+// ═══ PHOMEMO (fixed protocol) ═══
 async function connectPho(){if(!navigator.bluetooth){toast('Kein Web Bluetooth','err');return;}try{const d=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:[PHO_SVC,'000018f0-0000-1000-8000-00805f9b34fb','0000fff0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455']});S.phoDev=d;$('phomemo-info').textContent='⏳…';$('phomemo-info').style.color='var(--orange)';d.addEventListener('gattserverdisconnected',phoDC);const srv=await d.gatt.connect();let ch=await findChar(srv);if(!ch)throw new Error('Keine druckfähige Characteristic');S.phoChar=ch;$('phomemo-info').textContent='✓ '+(d.name||d.id);$('phomemo-info').style.color='var(--green)';$('btn-phomemo-connect').style.display='none';$('btn-phomemo-dc').style.display='';updStatus('ok','Phomemo: '+(d.name||d.id));toast('Phomemo verbunden!','ok');}catch(e){if(e.name!=='NotFoundError')toast('Phomemo: '+e.message,'err');$('phomemo-info').textContent='Nicht verbunden';$('phomemo-info').style.color='var(--text-muted)';}}
 function dcPho(){if(S.phoDev?.gatt.connected)S.phoDev.gatt.disconnect();phoDC();}
 function phoDC(){S.phoChar=null;$('phomemo-info').textContent='Nicht verbunden';$('phomemo-info').style.color='var(--text-muted)';$('btn-phomemo-connect').style.display='';$('btn-phomemo-dc').style.display='none';}
-async function printPho(v){if(!S.phoChar)throw new Error('Phomemo nicht verbunden');const{wp,hp}=labelPx();const cv=renderLabel(v,wp,hp);const{data,bpl,h}=to1Bit(cv);const hdr=new Uint8Array([0x1B,0x40,0x1F,0x11,0x02,0x1F,0x11,0x37]);const xL=bpl&0xFF,xH=(bpl>>8)&0xFF,yL=h&0xFF,yH=(h>>8)&0xFF;const cmd=new Uint8Array([0x1D,0x76,0x30,0x00,xL,xH,yL,yH]);const pay=new Uint8Array(hdr.length+cmd.length+data.length);pay.set(hdr);pay.set(cmd,hdr.length);pay.set(data,hdr.length+cmd.length);await bleChunk(S.phoChar,pay);}
+async function printPho(v){
+  if(!S.phoChar)throw new Error('Phomemo nicht verbunden');
+  const{wp,hp}=labelPx();
+  const cv=renderLabel(v,wp,hp);
+  const{data,bpl,h}=to1Bit(cv);
+  const density=parseInt($('phomemo-density').value)||3;
+  // Build ESC/POS raster protocol (max 255 lines per block)
+  const parts=[];
+  // Init
+  parts.push(new Uint8Array([0x1B,0x40])); // ESC @ reset
+  parts.push(new Uint8Array([0x1B,0x61,0x01])); // ESC a center
+  parts.push(new Uint8Array([0x1F,0x11,0x02,density])); // density
+  // Send image in 255-line blocks
+  let remaining=h;
+  let offset=0;
+  while(remaining>0){
+    const lines=Math.min(remaining,255);
+    const xL=bpl&0xFF,xH=(bpl>>8)&0xFF;
+    const yL=lines&0xFF,yH=(lines>>8)&0xFF;
+    // GS v 0 header
+    const hdr=new Uint8Array([0x1D,0x76,0x30,0x00,xL,xH,yL,yH]);
+    // Image data for this block
+    const blockData=data.slice(offset,offset+lines*bpl);
+    const block=new Uint8Array(hdr.length+blockData.length);
+    block.set(hdr);block.set(blockData,hdr.length);
+    parts.push(block);
+    offset+=lines*bpl;
+    remaining-=lines;
+  }
+  // Feed and end
+  parts.push(new Uint8Array([0x1B,0x64,0x02])); // feed 2 lines
+  parts.push(new Uint8Array([0x1F,0x11,0x08]));
+  parts.push(new Uint8Array([0x1F,0x11,0x0E]));
+  parts.push(new Uint8Array([0x1F,0x11,0x07]));
+  parts.push(new Uint8Array([0x1F,0x11,0x09]));
+  // Send all parts
+  for(const part of parts){
+    await bleChunk(S.phoChar,part);
+    await sleep(30);
+  }
+}
 
 // ═══ NIIMBOT (via niimbluelib) ═══
 const NIM_TASKS={B1:'B1',B1Pro:'B1',B21:'V4',B21Pro:'V4',D110:'V3',D11:'V1',B18:'V4'};
 async function connectNim(){
-  if(typeof niimbluelib==='undefined'){toast('niimbluelib nicht geladen','err');return;}
+  if(typeof niimbluelib==='undefined'){toast('niimbluelib nicht geladen – prüfe Internetverbindung','err');return;}
   if(!navigator.bluetooth){toast('Kein Web Bluetooth','err');return;}
   try{
-    if(!S.nimClient)S.nimClient=new niimbluelib.NiimbotBluetoothClient();
-    S.nimClient.addEventListener('connect',()=>{
-      $('niimbot-info').textContent='✓ Verbunden';
-      $('niimbot-info').style.color='var(--green)';
-      $('btn-niimbot-connect').style.display='none';
-      $('btn-niimbot-dc').style.display='';
-      updStatus('ok','Niimbot verbunden');
-      toast('Niimbot verbunden!','ok');
-    });
-    S.nimClient.addEventListener('disconnect',()=>nimDC());
-    S.nimClient.addEventListener('printprogress',(e)=>{
-      updStatus('ok',`Drucke… ${e.pagePrintProgress}%`);
-    });
+    S.nimClient=new niimbluelib.NiimbotBluetoothClient();
+    $('niimbot-info').textContent='⏳ Suche…';
+    $('niimbot-info').style.color='var(--orange)';
+    updStatus('warn','Verbinde Niimbot…');
     await S.nimClient.connect();
+    // If we get here, connection succeeded
+    $('niimbot-info').textContent='✓ Verbunden';
+    $('niimbot-info').style.color='var(--green)';
+    $('btn-niimbot-connect').style.display='none';
+    $('btn-niimbot-dc').style.display='';
+    updStatus('ok','Niimbot verbunden');
+    toast('Niimbot verbunden!','ok');
   }catch(e){
     if(e.name!=='NotFoundError')toast('Niimbot: '+e.message,'err');
     $('niimbot-info').textContent='Nicht verbunden';
     $('niimbot-info').style.color='var(--text-muted)';
+    updStatus('err','Niimbot Fehler');
+    S.nimClient=null;
   }
 }
-function dcNim(){if(S.nimClient)try{S.nimClient.disconnect();}catch(e){}nimDC();}
-function nimDC(){$('niimbot-info').textContent='Nicht verbunden';$('niimbot-info').style.color='var(--text-muted)';$('btn-niimbot-connect').style.display='';$('btn-niimbot-dc').style.display='none';}
+function dcNim(){
+  if(S.nimClient)try{S.nimClient.disconnect();}catch(e){}
+  nimDC();
+}
+function nimDC(){
+  $('niimbot-info').textContent='Nicht verbunden';
+  $('niimbot-info').style.color='var(--text-muted)';
+  $('btn-niimbot-connect').style.display='';
+  $('btn-niimbot-dc').style.display='none';
+}
 async function printNim(v){
-  if(!S.nimClient||!S.nimClient.isConnected)throw new Error('Niimbot nicht verbunden');
+  if(!S.nimClient)throw new Error('Niimbot nicht verbunden');
+  // Check connection - try different property names
+  const connected=S.nimClient.isConnected||S.nimClient.connected||S.nimClient._isConnected;
+  if(!connected)throw new Error('Niimbot nicht verbunden');
   const{wp,hp}=labelPx();
   const cv=renderLabel(v,wp,hp);
   const model=$('niimbot-model').value;
   const density=parseInt($('niimbot-density').value)||3;
   const taskName=NIM_TASKS[model]||'V4';
   const taskVersion=niimbluelib.PrintTaskVersion[taskName]||niimbluelib.PrintTaskVersion.V4;
-  // Determine print direction based on model
   const printDir=(model==='D110'||model==='D11')?'left':'top';
   const encoded=niimbluelib.ImageEncoder.encodeCanvas(cv,printDir);
   await S.nimClient.print(taskVersion,encoded,{
