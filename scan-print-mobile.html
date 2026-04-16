@@ -35,7 +35,7 @@
 </head>
 <body>
 <div class="app">
-  <div class="header"><h1><span class="icon">⬡</span> Scan &amp; Print <span class="badge">Mobile</span> <span class="badge" style="background:var(--green)">v1.8</span></h1></div>
+  <div class="header"><h1><span class="icon">⬡</span> Scan &amp; Print <span class="badge">Mobile</span> <span class="badge" style="background:var(--green)">v1.9</span></h1></div>
   <div class="tab-bar"><button class="tab-btn active" data-tab="scanner">▦ Scanner</button><button class="tab-btn" data-tab="settings">⚙ Einstellungen</button><button class="tab-btn" data-tab="log">☰ Log</button></div>
   <div class="tab-content">
     <!-- SCANNER -->
@@ -295,7 +295,6 @@ function nimDC(){
 }
 async function printNim(v){
   if(!S.nimClient)throw new Error('Niimbot nicht verbunden');
-  // Check connection - try different property names
   const connected=S.nimClient.isConnected||S.nimClient.connected||S.nimClient._isConnected;
   if(!connected)throw new Error('Niimbot nicht verbunden');
   const{wp,hp}=labelPx();
@@ -303,9 +302,19 @@ async function printNim(v){
   const model=$('niimbot-model').value;
   const density=parseInt($('niimbot-density').value)||3;
   const taskName=NIM_TASKS[model]||'V4';
-  const taskVersion=niimbluelib.PrintTaskVersion[taskName]||niimbluelib.PrintTaskVersion.V4;
   const printDir=(model==='D110'||model==='D11')?'left':'top';
-  const encoded=niimbluelib.ImageEncoder.encodeCanvas(cv,printDir);
+  // Find PrintTaskVersion - handle different UMD export structures
+  let taskVersion;
+  const PTV=niimbluelib.PrintTaskVersion||niimbluelib.printTaskVersion;
+  if(PTV){
+    taskVersion=PTV[taskName]||PTV.V4||Object.values(PTV)[0];
+  }
+  // If still undefined, try passing string directly
+  if(taskVersion===undefined)taskVersion=taskName;
+  console.log('Niimbot print:',{model,taskName,taskVersion,wp,hp,printDir,availPTV:PTV,niimbluelibKeys:Object.keys(niimbluelib)});
+  const IE=niimbluelib.ImageEncoder||niimbluelib.imageEncoder;
+  if(!IE)throw new Error('ImageEncoder nicht verfügbar in niimbluelib');
+  const encoded=IE.encodeCanvas(cv,printDir);
   await S.nimClient.print(taskVersion,encoded,{
     quantity:1,
     density:density,
