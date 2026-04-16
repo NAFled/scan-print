@@ -35,7 +35,7 @@
 </head>
 <body>
 <div class="app">
-  <div class="header"><h1><span class="icon">⬡</span> Scan &amp; Print <span class="badge">Mobile</span> <span class="badge" style="background:var(--green)">v2.0</span></h1></div>
+  <div class="header"><h1><span class="icon">⬡</span> Scan &amp; Print <span class="badge">Mobile</span> <span class="badge" style="background:var(--green)">v2.1</span></h1></div>
   <div class="tab-bar"><button class="tab-btn active" data-tab="scanner">▦ Scanner</button><button class="tab-btn" data-tab="settings">⚙ Einstellungen</button><button class="tab-btn" data-tab="log">☰ Log</button></div>
   <div class="tab-content">
     <!-- SCANNER -->
@@ -101,7 +101,7 @@
 const S={scanning:false,lastV:'',lastT:0,history:[],log:[],stream:null,detector:null,scanTimer:null,
   btDev:null,btChar:null,btSrv:null,
   phoDev:null,phoChar:null,
-  nimClient:null};
+  nimClient:null,nimAbstraction:null};
 const DUPE=2500,MAXH=8,SAMPLE='4006381333931',DPI203=8,DPI300=11.81;
 
 const BT_SVCS=['38eb4a80-c570-11e3-9507-0002a5d5c51b','000018f0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455','e7810a71-73ae-499d-8c15-faa9aef0c3f2','0000ff00-0000-1000-8000-00805f9b34fb','0000fff0-0000-1000-8000-00805f9b34fb','0000fee7-0000-1000-8000-00805f9b34fb','0000ae30-0000-1000-8000-00805f9b34fb','0000aaf0-0000-1000-8000-00805f9b34fb','00001101-0000-1000-8000-00805f9b34fb','0000feea-0000-1000-8000-00805f9b34fb','6e400001-b5a3-f393-e0a9-e50e24dcca9e','0000ffe0-0000-1000-8000-00805f9b34fb'];
@@ -257,43 +257,35 @@ async function printPho(v){
   }
 }
 
-// ═══ NIIMBOT (via niimbluelib) ═══
-const NIM_TASKS={B1:'B1',B1Pro:'B1',B21:'V4',B21Pro:'V4',D110:'V3',D11:'V1',B18:'V4'};
+// ═══ NIIMBOT (via niimbluelib – correct API) ═══
+const NIM_TASK_CLASS={
+  B1:'B1PrintTask',B1Pro:'B1PrintTask',
+  B21:'B21V1PrintTask',B21Pro:'B21V1PrintTask',
+  D110:'D110PrintTask',D11:'OldD11PrintTask',
+  B18:'B21V1PrintTask'
+};
 async function connectNim(){
   if(typeof niimbluelib==='undefined'){toast('niimbluelib nicht geladen','err');return;}
   if(!navigator.bluetooth){toast('Kein Web Bluetooth','err');return;}
-  // Debug: show what niimbluelib exports
-  const keys=Object.keys(niimbluelib);
-  console.log('niimbluelib exports:',keys);
-  // Find nested exports
-  for(const k of keys){
-    const val=niimbluelib[k];
-    if(val&&typeof val==='object'&&!Array.isArray(val)){
-      console.log(`niimbluelib.${k} keys:`,Object.keys(val));
-    }else if(typeof val==='function'){
-      console.log(`niimbluelib.${k}: [Function]`);
-    }
-  }
   try{
     S.nimClient=new niimbluelib.NiimbotBluetoothClient();
     $('niimbot-info').textContent='⏳ Suche…';
     $('niimbot-info').style.color='var(--orange)';
     updStatus('warn','Verbinde Niimbot…');
     await S.nimClient.connect();
+    S.nimAbstraction=new niimbluelib.Abstraction(S.nimClient);
     $('niimbot-info').textContent='✓ Verbunden';
     $('niimbot-info').style.color='var(--green)';
     $('btn-niimbot-connect').style.display='none';
     $('btn-niimbot-dc').style.display='';
     updStatus('ok','Niimbot verbunden');
     toast('Niimbot verbunden!','ok');
-    // Debug: show client methods
-    console.log('nimClient methods:',Object.getOwnPropertyNames(Object.getPrototypeOf(S.nimClient)));
   }catch(e){
     if(e.name!=='NotFoundError')toast('Niimbot: '+e.message,'err');
     $('niimbot-info').textContent='Nicht verbunden';
     $('niimbot-info').style.color='var(--text-muted)';
     updStatus('err','Niimbot Fehler');
-    S.nimClient=null;
+    S.nimClient=null;S.nimAbstraction=null;
   }
 }
 function dcNim(){
@@ -301,40 +293,33 @@ function dcNim(){
   nimDC();
 }
 function nimDC(){
+  S.nimClient=null;S.nimAbstraction=null;
   $('niimbot-info').textContent='Nicht verbunden';
   $('niimbot-info').style.color='var(--text-muted)';
   $('btn-niimbot-connect').style.display='';
   $('btn-niimbot-dc').style.display='none';
 }
 async function printNim(v){
-  if(!S.nimClient)throw new Error('Niimbot nicht verbunden');
-  const connected=S.nimClient.isConnected||S.nimClient.connected||S.nimClient._isConnected;
-  if(!connected)throw new Error('Niimbot nicht verbunden');
+  if(!S.nimClient||!S.nimClient.isConnected())throw new Error('Niimbot nicht verbunden');
   const{wp,hp}=labelPx();
   const cv=renderLabel(v,wp,hp);
   const model=$('niimbot-model').value;
   const density=parseInt($('niimbot-density').value)||3;
-  const taskName=NIM_TASKS[model]||'V4';
   const printDir=(model==='D110'||model==='D11')?'left':'top';
-  // Find PrintTaskVersion - handle different UMD export structures
-  let taskVersion;
-  const PTV=niimbluelib.PrintTaskVersion||niimbluelib.printTaskVersion;
-  if(PTV){
-    taskVersion=PTV[taskName]||PTV.V4||Object.values(PTV)[0];
-  }
-  // If still undefined, try passing string directly
-  if(taskVersion===undefined)taskVersion=taskName;
-  console.log('Niimbot print:',{model,taskName,taskVersion,wp,hp,printDir,availPTV:PTV,niimbluelibKeys:Object.keys(niimbluelib)});
-  const IE=niimbluelib.ImageEncoder||niimbluelib.imageEncoder;
-  if(!IE)throw new Error('ImageEncoder nicht verfügbar in niimbluelib');
-  const encoded=IE.encodeCanvas(cv,printDir);
-  await S.nimClient.print(taskVersion,encoded,{
+  // Encode image
+  const encoded=niimbluelib.ImageEncoder.encodeCanvas(cv,printDir);
+  // Get correct print task class for model
+  const taskClassName=NIM_TASK_CLASS[model]||'B1PrintTask';
+  const TaskClass=niimbluelib[taskClassName];
+  if(!TaskClass)throw new Error('PrintTask "'+taskClassName+'" nicht gefunden');
+  // Create task and print
+  const task=new TaskClass(S.nimAbstraction);
+  await task.print(encoded,{
     quantity:1,
     density:density,
     labelType:1,
     width:wp,
     height:hp,
-    printDirection:printDir
   });
 }
 
