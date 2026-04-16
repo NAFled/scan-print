@@ -6,6 +6,7 @@
 <title>Scan &amp; Print Mobile</title>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script src="https://unpkg.com/@mmote/niimbluelib/dist/umd/niimbluelib.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
 :root{--bg-primary:#0c0e13;--bg-card:#1a1e27;--bg-input:#12151b;--border:#2a2f3a;--border-focus:#3d8bfd;--text-primary:#e8ecf1;--text-secondary:#8a92a1;--text-muted:#555d6e;--accent:#3d8bfd;--accent-dim:#2a6ad4;--green:#00d68f;--green-dim:rgba(0,214,143,.12);--red:#ff4757;--red-dim:rgba(255,71,87,.12);--orange:#ffa502;--orange-dim:rgba(255,165,2,.12);--mono:'JetBrains Mono','Fira Code',monospace;--sans:'DM Sans',-apple-system,sans-serif;--radius:10px;--radius-sm:6px}
@@ -34,7 +35,7 @@
 </head>
 <body>
 <div class="app">
-  <div class="header"><h1><span class="icon">⬡</span> Scan &amp; Print <span class="badge">Mobile</span> <span class="badge" style="background:var(--green)">v1.5</span></h1></div>
+  <div class="header"><h1><span class="icon">⬡</span> Scan &amp; Print <span class="badge">Mobile</span> <span class="badge" style="background:var(--green)">v1.7</span></h1></div>
   <div class="tab-bar"><button class="tab-btn active" data-tab="scanner">▦ Scanner</button><button class="tab-btn" data-tab="settings">⚙ Einstellungen</button><button class="tab-btn" data-tab="log">☰ Log</button></div>
   <div class="tab-content">
     <!-- SCANNER -->
@@ -100,13 +101,13 @@
 const S={scanning:false,lastV:'',lastT:0,history:[],log:[],stream:null,detector:null,scanTimer:null,
   btDev:null,btChar:null,btSrv:null,
   phoDev:null,phoChar:null,
-  nimDev:null,nimWrite:null,nimNotify:null,nimQ:[]};
+  nimClient:null};
 const DUPE=2500,MAXH=8,SAMPLE='4006381333931',DPI203=8,DPI300=11.81;
 
 const BT_SVCS=['38eb4a80-c570-11e3-9507-0002a5d5c51b','000018f0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455','e7810a71-73ae-499d-8c15-faa9aef0c3f2','0000ff00-0000-1000-8000-00805f9b34fb','0000fff0-0000-1000-8000-00805f9b34fb','0000fee7-0000-1000-8000-00805f9b34fb','0000ae30-0000-1000-8000-00805f9b34fb','0000aaf0-0000-1000-8000-00805f9b34fb','00001101-0000-1000-8000-00805f9b34fb','0000feea-0000-1000-8000-00805f9b34fb','6e400001-b5a3-f393-e0a9-e50e24dcca9e','0000ffe0-0000-1000-8000-00805f9b34fb'];
 const NIM_M={B1:{mx:384,d:DPI203},B1Pro:{mx:384,d:DPI300},B21:{mx:384,d:DPI203},B21Pro:{mx:384,d:DPI300},D110:{mx:96,d:DPI203},D11:{mx:96,d:DPI203},B18:{mx:384,d:DPI203}};
 const PHO_M={M221:{mx:576,d:DPI203},M220:{mx:576,d:DPI203},M110:{mx:384,d:DPI203},M120:{mx:384,d:DPI203},M200:{mx:384,d:DPI203},M260:{mx:480,d:DPI203}};
-const PHO_SVC='0000ff00-0000-1000-8000-00805f9b34fb',NIM_SVC='e7810a71-73ae-499d-8c15-faa9aef0c3f2';
+const PHO_SVC='0000ff00-0000-1000-8000-00805f9b34fb';
 const $=id=>document.getElementById(id);const video=$('cam-video'),overlay=$('cam-overlay'),vw=$('video-wrap');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -147,16 +148,16 @@ const c=document.createElement('canvas');c.width=wp;c.height=hp;
 const x=c.getContext('2d');
 x.fillStyle='#FFF';x.fillRect(0,0,wp,hp);x.fillStyle='#000';
 const mode=getO();
-const fs=Math.max(10,Math.min(Math.round(wp*.05),20));
-const txtH=Math.round(fs*1.3);
-const gap=Math.round(hp*.02);
+// Smaller font, tight gap
+const fs=Math.max(8,Math.min(Math.round(wp*.035),16));
+const txtH=Math.round(fs*1.2);
+const gap=Math.round(Math.min(wp,hp)*.01);
 const margin=Math.round(Math.min(wp,hp)*.03);
 
 if(mode==='qr'){
   try{
     const q=qrcode(0,'M');q.addData(v);q.make();
     const m=q.getModuleCount();
-    // Max QR size: fill label minus small margin, text line and gap
     const maxW=wp-margin*2;
     const maxH=hp-margin*2-txtH-gap;
     const maxSz=Math.min(maxW,maxH);
@@ -166,7 +167,8 @@ if(mode==='qr'){
     const startY=Math.round((hp-totalH)/2);
     const startX=Math.round((wp-sz)/2);
     for(let r=0;r<m;r++)for(let c2=0;c2<m;c2++)if(q.isDark(r,c2))x.fillRect(startX+c2*cs,startY+r*cs,cs,cs);
-    x.font=`bold ${fs}px monospace`;x.textAlign='center';x.textBaseline='top';
+    // Text centered below QR
+    x.font=`${fs}px monospace`;x.textAlign='center';x.textBaseline='top';
     x.fillText(v,wp/2,startY+sz+gap,wp-margin*2);
   }catch(e){x.font=`bold ${Math.round(hp*.08)}px monospace`;x.textAlign='center';x.textBaseline='middle';x.fillText('QR Err',wp/2,hp/2);}
 } else {
@@ -192,7 +194,7 @@ if(mode==='qr'){
       const rh=parseFloat(r.getAttribute('height'))*scaleY;
       if((r.getAttribute('fill')||'')==='#000000')x.fillRect(startX+rx,startY+ry,rw,rh);
     });
-    x.font=`bold ${fs}px monospace`;x.textAlign='center';x.textBaseline='top';
+    x.font=`${fs}px monospace`;x.textAlign='center';x.textBaseline='top';
     x.fillText(v,wp/2,startY+bcDrawH+gap,maxW);
   }catch(e){x.font=`bold ${Math.round(hp*.08)}px monospace`;x.textAlign='center';x.textBaseline='middle';x.fillText('BC Err',wp/2,hp/2);}
 }
@@ -209,61 +211,99 @@ function btDC(){S.btChar=null;S.btSrv=null;$('bt-device-name').textContent='Nich
 async function autoReconnect(){if(!navigator.bluetooth?.getDevices)return;try{const devs=await navigator.bluetooth.getDevices();for(const d of devs){if(!d.gatt)continue;try{const ac=new AbortController();const to=setTimeout(()=>ac.abort(),4000);await new Promise((res,rej)=>{d.addEventListener('advertisementreceived',async()=>{clearTimeout(to);try{await attachBT(d);res();}catch(e){rej(e);}},{once:true});d.watchAdvertisements({signal:ac.signal}).catch(()=>{clearTimeout(to);rej(new Error('to'));});ac.signal.addEventListener('abort',()=>rej(new Error('to')));});return;}catch(e){}}}catch(e){}}
 async function bleChunk(ch,data,sz=512){for(let i=0;i<data.length;i+=sz){const c=data.slice(i,Math.min(i+sz,data.length));if(ch.properties.writeWithoutResponse)await ch.writeValueWithoutResponse(c);else await ch.writeValueWithResponse(c);if(data.length>sz)await sleep(20);}}
 
-// ═══ PHOMEMO ═══
-async function connectPho(){if(!navigator.bluetooth){toast('Kein Web Bluetooth','err');return;}try{const d=await navigator.bluetooth.requestDevice({filters:[{namePrefix:'M'}],optionalServices:[PHO_SVC,'000018f0-0000-1000-8000-00805f9b34fb']});S.phoDev=d;$('phomemo-info').textContent='⏳…';$('phomemo-info').style.color='var(--orange)';d.addEventListener('gattserverdisconnected',phoDC);const srv=await d.gatt.connect();let ch;for(const u of[PHO_SVC,'000018f0-0000-1000-8000-00805f9b34fb']){try{const svc=await srv.getPrimaryService(u);const cs=await svc.getCharacteristics();for(const c of cs)if(c.properties.writeWithoutResponse||c.properties.write){ch=c;break;}if(ch)break;}catch(e){}}if(!ch)throw new Error('Keine Characteristic');S.phoChar=ch;$('phomemo-info').textContent='✓ '+(d.name||d.id);$('phomemo-info').style.color='var(--green)';$('btn-phomemo-connect').style.display='none';$('btn-phomemo-dc').style.display='';updStatus('ok','Phomemo: '+(d.name||d.id));toast('Phomemo verbunden!','ok');}catch(e){if(e.name!=='NotFoundError')toast('Phomemo: '+e.message,'err');$('phomemo-info').textContent='Nicht verbunden';$('phomemo-info').style.color='var(--text-muted)';}}
+// ═══ PHOMEMO (fixed: acceptAllDevices) ═══
+async function connectPho(){if(!navigator.bluetooth){toast('Kein Web Bluetooth','err');return;}try{const d=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:[PHO_SVC,'000018f0-0000-1000-8000-00805f9b34fb','0000fff0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455']});S.phoDev=d;$('phomemo-info').textContent='⏳…';$('phomemo-info').style.color='var(--orange)';d.addEventListener('gattserverdisconnected',phoDC);const srv=await d.gatt.connect();let ch=await findChar(srv);if(!ch)throw new Error('Keine druckfähige Characteristic');S.phoChar=ch;$('phomemo-info').textContent='✓ '+(d.name||d.id);$('phomemo-info').style.color='var(--green)';$('btn-phomemo-connect').style.display='none';$('btn-phomemo-dc').style.display='';updStatus('ok','Phomemo: '+(d.name||d.id));toast('Phomemo verbunden!','ok');}catch(e){if(e.name!=='NotFoundError')toast('Phomemo: '+e.message,'err');$('phomemo-info').textContent='Nicht verbunden';$('phomemo-info').style.color='var(--text-muted)';}}
 function dcPho(){if(S.phoDev?.gatt.connected)S.phoDev.gatt.disconnect();phoDC();}
 function phoDC(){S.phoChar=null;$('phomemo-info').textContent='Nicht verbunden';$('phomemo-info').style.color='var(--text-muted)';$('btn-phomemo-connect').style.display='';$('btn-phomemo-dc').style.display='none';}
 async function printPho(v){if(!S.phoChar)throw new Error('Phomemo nicht verbunden');const{wp,hp}=labelPx();const cv=renderLabel(v,wp,hp);const{data,bpl,h}=to1Bit(cv);const hdr=new Uint8Array([0x1B,0x40,0x1F,0x11,0x02,0x1F,0x11,0x37]);const xL=bpl&0xFF,xH=(bpl>>8)&0xFF,yL=h&0xFF,yH=(h>>8)&0xFF;const cmd=new Uint8Array([0x1D,0x76,0x30,0x00,xL,xH,yL,yH]);const pay=new Uint8Array(hdr.length+cmd.length+data.length);pay.set(hdr);pay.set(cmd,hdr.length);pay.set(data,hdr.length+cmd.length);await bleChunk(S.phoChar,pay);}
 
-// ═══ NIIMBOT ═══
-function nimPkt(cmd,pl=[]){const l=pl.length;const p=[0x55,0x55,cmd,(l>>8)&0xFF,l&0xFF,...pl];let cs=0;for(let i=2;i<p.length;i++)cs^=p[i];p.push(cs,0xAA,0xAA);return new Uint8Array(p);}
-async function connectNim(){if(!navigator.bluetooth){toast('Kein Web Bluetooth','err');return;}try{const d=await navigator.bluetooth.requestDevice({filters:[{namePrefix:'D'},{namePrefix:'B'},{namePrefix:'N'}],optionalServices:[NIM_SVC]});S.nimDev=d;$('niimbot-info').textContent='⏳…';$('niimbot-info').style.color='var(--orange)';d.addEventListener('gattserverdisconnected',nimDC);const srv=await d.gatt.connect();const svc=await srv.getPrimaryService(NIM_SVC);const cs=await svc.getCharacteristics();for(const c of cs){if(c.properties.writeWithoutResponse||c.properties.write)S.nimWrite=c;if(c.properties.notify){S.nimNotify=c;await c.startNotifications();c.addEventListener('characteristicvaluechanged',e=>{S.nimQ.push(new Uint8Array(e.target.value.buffer));});}}if(!S.nimWrite)throw new Error('Keine Write-Char');$('niimbot-info').textContent='✓ '+(d.name||d.id);$('niimbot-info').style.color='var(--green)';$('btn-niimbot-connect').style.display='none';$('btn-niimbot-dc').style.display='';updStatus('ok','Niimbot: '+(d.name||d.id));toast('Niimbot verbunden!','ok');}catch(e){if(e.name!=='NotFoundError')toast('Niimbot: '+e.message,'err');$('niimbot-info').textContent='Nicht verbunden';$('niimbot-info').style.color='var(--text-muted)';}}
-function dcNim(){if(S.nimDev?.gatt.connected)S.nimDev.gatt.disconnect();nimDC();}
-function nimDC(){S.nimWrite=null;S.nimNotify=null;$('niimbot-info').textContent='Nicht verbunden';$('niimbot-info').style.color='var(--text-muted)';$('btn-niimbot-connect').style.display='';$('btn-niimbot-dc').style.display='none';}
-async function nimSend(p){if(!S.nimWrite)throw new Error('Niimbot nicht verbunden');S.nimQ=[];if(S.nimWrite.properties.writeWithoutResponse)await S.nimWrite.writeValueWithoutResponse(p);else await S.nimWrite.writeValueWithResponse(p);await sleep(50);}
-async function printNim(v){if(!S.nimWrite)throw new Error('Niimbot nicht verbunden');const{wp,hp}=labelPx();const cv=renderLabel(v,wp,hp);const{data,bpl,h,w}=to1Bit(cv);const dn=parseInt($('niimbot-density').value)||3;await nimSend(nimPkt(0x21,[dn]));await nimSend(nimPkt(0x23,[1]));await nimSend(nimPkt(0xD1,[(h>>8)&0xFF,h&0xFF,(w>>8)&0xFF,w&0xFF]));await nimSend(nimPkt(0x15,[0,1]));await nimSend(nimPkt(0x01,[1]));await sleep(100);await nimSend(nimPkt(0x03,[1]));for(let y=0;y<h;y++){const ld=data.slice(y*bpl,(y+1)*bpl);await nimSend(nimPkt(0x85,[(y>>8)&0xFF,y&0xFF,0,bpl,...ld]));if(y%50===49)await sleep(20);}await nimSend(nimPkt(0xE3,[1]));await sleep(100);await nimSend(nimPkt(0xF3,[1]));}
+// ═══ NIIMBOT (via niimbluelib) ═══
+const NIM_TASKS={B1:'B1',B1Pro:'B1',B21:'V4',B21Pro:'V4',D110:'V3',D11:'V1',B18:'V4'};
+async function connectNim(){
+  if(typeof niimbluelib==='undefined'){toast('niimbluelib nicht geladen','err');return;}
+  if(!navigator.bluetooth){toast('Kein Web Bluetooth','err');return;}
+  try{
+    if(!S.nimClient)S.nimClient=new niimbluelib.NiimbotBluetoothClient();
+    S.nimClient.addEventListener('connect',()=>{
+      $('niimbot-info').textContent='✓ Verbunden';
+      $('niimbot-info').style.color='var(--green)';
+      $('btn-niimbot-connect').style.display='none';
+      $('btn-niimbot-dc').style.display='';
+      updStatus('ok','Niimbot verbunden');
+      toast('Niimbot verbunden!','ok');
+    });
+    S.nimClient.addEventListener('disconnect',()=>nimDC());
+    S.nimClient.addEventListener('printprogress',(e)=>{
+      updStatus('ok',`Drucke… ${e.pagePrintProgress}%`);
+    });
+    await S.nimClient.connect();
+  }catch(e){
+    if(e.name!=='NotFoundError')toast('Niimbot: '+e.message,'err');
+    $('niimbot-info').textContent='Nicht verbunden';
+    $('niimbot-info').style.color='var(--text-muted)';
+  }
+}
+function dcNim(){if(S.nimClient)try{S.nimClient.disconnect();}catch(e){}nimDC();}
+function nimDC(){$('niimbot-info').textContent='Nicht verbunden';$('niimbot-info').style.color='var(--text-muted)';$('btn-niimbot-connect').style.display='';$('btn-niimbot-dc').style.display='none';}
+async function printNim(v){
+  if(!S.nimClient||!S.nimClient.isConnected)throw new Error('Niimbot nicht verbunden');
+  const{wp,hp}=labelPx();
+  const cv=renderLabel(v,wp,hp);
+  const model=$('niimbot-model').value;
+  const density=parseInt($('niimbot-density').value)||3;
+  const taskName=NIM_TASKS[model]||'V4';
+  const taskVersion=niimbluelib.PrintTaskVersion[taskName]||niimbluelib.PrintTaskVersion.V4;
+  // Determine print direction based on model
+  const printDir=(model==='D110'||model==='D11')?'left':'top';
+  const encoded=niimbluelib.ImageEncoder.encodeCanvas(cv,printDir);
+  await S.nimClient.print(taskVersion,encoded,{
+    quantity:1,
+    density:density,
+    labelType:1,
+    width:wp,
+    height:hp,
+    printDirection:printDir
+  });
+}
 
 // ═══ STD PRINT CMDS ═══
 function genPrint(v){
 const l=$('print-lang').value,m=getO(),w=parseInt($('label-w').value)||50,h=parseInt($('label-h').value)||30,dw=w*8,dh=h*8;
 if(l==='zpl'){
-  // Dynamic ZPL: center barcode/QR and maximize size
-  const margin=Math.round(dw*.03); // 3% margin
-  const fontH=Math.max(20,Math.round(dh*.08));
-  const gap=Math.round(dh*.02);
-  const availW=dw-margin*2;
-  const availH=dh-margin*2-fontH-gap;
+  const fontH=Math.max(16,Math.round(dh*.05));
+  const gap=Math.max(4,Math.round(dh*.01));
+  const margin=Math.round(dw*.03);
   if(m==='qr'){
-    // QR mag: ~29 modules for short data. mag = floor(availableSize / estimatedModules)
-    const estMod=29;
-    const maxSz=Math.min(availW,availH);
+    // QR: 21 modules for short data (version 1), maximize magnification
+    const estMod=21;
+    const maxSz=Math.min(dw-margin*2, dh-margin*2-fontH-gap);
     const mag=Math.max(1,Math.min(10,Math.floor(maxSz/estMod)));
     const qrSz=mag*estMod;
     const qrX=Math.round((dw-qrSz)/2);
-    const qrY=Math.round((dh-qrSz-gap-fontH)/2);
+    const totalH=qrSz+gap+fontH;
+    const qrY=Math.round((dh-totalH)/2);
     const txtY=qrY+qrSz+gap;
-    return `^XA\n^PW${dw}\n^LL${dh}\n^FO${qrX},${qrY}\n^BQN,2,${mag}\n^FDQA,${v}^FS\n^FO${margin},${txtY}\n^FB${availW},1,0,C,0\n^A0N,${fontH},${fontH}\n^FD${v}^FS\n^XZ`;
+    return `^XA\n^PW${dw}\n^LL${dh}\n^FO${qrX},${qrY}\n^BQN,2,${mag}\n^FDQA,${v}^FS\n^FO0,${txtY}\n^FB${dw},1,0,C,0\n^A0N,${fontH},${fontH}\n^FD${v}^FS\n^XZ`;
   } else {
-    const bcH=Math.max(40,availH);
-    const bcX=margin;
-    const bcY=Math.round((dh-bcH-gap-fontH)/2);
+    const bcH=Math.max(40,dh-margin*2-fontH-gap);
+    const totalH=bcH+gap+fontH;
+    const bcY=Math.round((dh-totalH)/2);
     const txtY=bcY+bcH+gap;
-    // ^BY sets bar width; ^BCN for Code128 centered
-    const barW=Math.max(1,Math.min(4,Math.floor(availW/120)));
-    return `^XA\n^PW${dw}\n^LL${dh}\n^FO${bcX},${bcY}\n^FB${availW},1,0,C,0\n^BY${barW}\n^BCN,${bcH},N,N,N\n^FD${v}^FS\n^FO${margin},${txtY}\n^FB${availW},1,0,C,0\n^A0N,${fontH},${fontH}\n^FD${v}^FS\n^XZ`;
+    const barW=Math.max(1,Math.min(4,Math.floor((dw-margin*2)/120)));
+    return `^XA\n^PW${dw}\n^LL${dh}\n^FO${margin},${bcY}\n^FB${dw-margin*2},1,0,C,0\n^BY${barW}\n^BCN,${bcH},N,N,N\n^FD${v}^FS\n^FO0,${txtY}\n^FB${dw},1,0,C,0\n^A0N,${fontH},${fontH}\n^FD${v}^FS\n^XZ`;
   }
 }
 if(l==='epl'){
-  const fontH=Math.round(dh*.08);const gap=Math.round(dh*.02);const availH=dh-fontH-gap-Math.round(dh*.06);
-  if(m==='qr'){const mag=Math.max(1,Math.min(10,Math.floor(Math.min(dw,availH)/29)));const sz=mag*29;const ox=Math.round((dw-sz)/2);const oy=Math.round((dh-sz-gap-fontH)/2);return `\nN\nq${dw}\nQ${dh},24\nb${ox},${oy},Q,s${mag},"${v}"\nA${Math.round((dw-v.length*12)/2)},${oy+sz+gap},0,3,1,1,N,"${v}"\nP1\n`;}
+  const fontH=Math.round(dh*.05);const gap=Math.round(dh*.01);const availH=dh-fontH-gap-Math.round(dh*.06);
+  if(m==='qr'){const mag=Math.max(1,Math.min(10,Math.floor(Math.min(dw,availH)/21)));const sz=mag*21;const ox=Math.round((dw-sz)/2);const oy=Math.round((dh-sz-gap-fontH)/2);return `\nN\nq${dw}\nQ${dh},24\nb${ox},${oy},Q,s${mag},"${v}"\nA${Math.round((dw-v.length*12)/2)},${oy+sz+gap},0,3,1,1,N,"${v}"\nP1\n`;}
   else{const bcH=Math.max(40,availH);const oy=Math.round((dh-bcH-gap-fontH)/2);return `\nN\nq${dw}\nQ${dh},24\nB${Math.round(dw*.05)},${oy},0,1,2,4,${bcH},N,"${v}"\nA${Math.round((dw-v.length*12)/2)},${oy+bcH+gap},0,3,1,1,N,"${v}"\nP1\n`;}
 }
 if(l==='tspl'){
-  const dpmm=8;const pxW=w*dpmm,pxH=h*dpmm;const fontH=Math.round(pxH*.08);const gap=Math.round(pxH*.02);const availH=pxH-fontH-gap-Math.round(pxH*.06);
-  if(m==='qr'){const mag=Math.max(1,Math.min(10,Math.floor(Math.min(pxW,availH)/29)));const sz=mag*29;const ox=Math.round((pxW-sz)/2);const oy=Math.round((pxH-sz-gap-fontH)/2);return `SIZE ${w} mm, ${h} mm\nGAP 2 mm, 0 mm\nCLS\nQRCODE ${ox},${oy},L,${mag},A,0,"${v}"\nTEXT ${Math.round(pxW/2)},${oy+sz+gap},"3",0,1,1,1,"${v}"\nPRINT 1,1\n`;}
-  else{const bcH=Math.max(40,availH);const oy=Math.round((pxH-bcH-gap-fontH)/2);return `SIZE ${w} mm, ${h} mm\nGAP 2 mm, 0 mm\nCLS\nBARCODE ${Math.round(pxW*.05)},${oy},"128",${bcH},1,0,2,2,"${v}"\nTEXT ${Math.round(pxW/2)},${oy+bcH+gap},"3",0,1,1,1,"${v}"\nPRINT 1,1\n`;}
+  const d=8,pw=w*d,ph=h*d,fontH=Math.round(ph*.05),gap=Math.round(ph*.01),availH=ph-fontH-gap-Math.round(ph*.06);
+  if(m==='qr'){const mag=Math.max(1,Math.min(10,Math.floor(Math.min(pw,availH)/21)));const sz=mag*21;const ox=Math.round((pw-sz)/2);const oy=Math.round((ph-sz-gap-fontH)/2);return `SIZE ${w} mm, ${h} mm\nGAP 2 mm, 0 mm\nCLS\nQRCODE ${ox},${oy},L,${mag},A,0,"${v}"\nTEXT ${Math.round(pw/2)},${oy+sz+gap},"3",0,1,1,1,"${v}"\nPRINT 1,1\n`;}
+  else{const bcH=Math.max(40,availH);const oy=Math.round((ph-bcH-gap-fontH)/2);return `SIZE ${w} mm, ${h} mm\nGAP 2 mm, 0 mm\nCLS\nBARCODE ${Math.round(pw*.05)},${oy},"128",${bcH},1,0,2,2,"${v}"\nTEXT ${Math.round(pw/2)},${oy+bcH+gap},"3",0,1,1,1,"${v}"\nPRINT 1,1\n`;}
 }
-if(l==='escpos'){const E='\x1B',G='\x1D';let c=E+'@'+E+'a\x01';if(m==='qr'){const n=v.length+3;const sz=Math.max(3,Math.min(12,Math.floor((w*8)/29)));c+=G+'(k\x04\x001A2\x00'+G+'(k\x03\x001C'+String.fromCharCode(sz)+G+'(k\x03\x001E\x31'+G+'(k'+String.fromCharCode(n&0xFF,(n>>8)&0xFF)+'1P0'+v+G+'(k\x03\x001Q0';}else{const bcH=Math.max(40,Math.round(h*8*.6));c+=G+'h'+String.fromCharCode(bcH)+G+'w\x02'+G+'H\x02'+G+'k\x49'+String.fromCharCode(v.length)+v;}return c+'\n'+v+'\n'+G+'V\x41\x03';}
+if(l==='escpos'){const E='\x1B',G='\x1D';let c=E+'@'+E+'a\x01';if(m==='qr'){const n=v.length+3;const sz=Math.max(3,Math.min(12,Math.floor((w*8)/21)));c+=G+'(k\x04\x001A2\x00'+G+'(k\x03\x001C'+String.fromCharCode(sz)+G+'(k\x03\x001E\x31'+G+'(k'+String.fromCharCode(n&0xFF,(n>>8)&0xFF)+'1P0'+v+G+'(k\x03\x001Q0';}else{const bcH=Math.max(40,Math.round(h*8*.6));c+=G+'h'+String.fromCharCode(bcH)+G+'w\x02'+G+'H\x02'+G+'k\x49'+String.fromCharCode(v.length)+v;}return c+'\n'+v+'\n'+G+'V\x41\x03';}
 return v;}
 
 // ═══ PRINT DISPATCH ═══
