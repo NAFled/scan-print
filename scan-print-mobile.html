@@ -35,7 +35,7 @@
 </head>
 <body>
 <div class="app">
-  <div class="header"><h1><span class="icon">⬡</span> Scan &amp; Print <span class="badge">Mobile</span> <span class="badge" style="background:var(--green)">v1.9</span></h1></div>
+  <div class="header"><h1><span class="icon">⬡</span> Scan &amp; Print <span class="badge">Mobile</span> <span class="badge" style="background:var(--green)">v2.0</span></h1></div>
   <div class="tab-bar"><button class="tab-btn active" data-tab="scanner">▦ Scanner</button><button class="tab-btn" data-tab="settings">⚙ Einstellungen</button><button class="tab-btn" data-tab="log">☰ Log</button></div>
   <div class="tab-content">
     <!-- SCANNER -->
@@ -260,21 +260,34 @@ async function printPho(v){
 // ═══ NIIMBOT (via niimbluelib) ═══
 const NIM_TASKS={B1:'B1',B1Pro:'B1',B21:'V4',B21Pro:'V4',D110:'V3',D11:'V1',B18:'V4'};
 async function connectNim(){
-  if(typeof niimbluelib==='undefined'){toast('niimbluelib nicht geladen – prüfe Internetverbindung','err');return;}
+  if(typeof niimbluelib==='undefined'){toast('niimbluelib nicht geladen','err');return;}
   if(!navigator.bluetooth){toast('Kein Web Bluetooth','err');return;}
+  // Debug: show what niimbluelib exports
+  const keys=Object.keys(niimbluelib);
+  console.log('niimbluelib exports:',keys);
+  // Find nested exports
+  for(const k of keys){
+    const val=niimbluelib[k];
+    if(val&&typeof val==='object'&&!Array.isArray(val)){
+      console.log(`niimbluelib.${k} keys:`,Object.keys(val));
+    }else if(typeof val==='function'){
+      console.log(`niimbluelib.${k}: [Function]`);
+    }
+  }
   try{
     S.nimClient=new niimbluelib.NiimbotBluetoothClient();
     $('niimbot-info').textContent='⏳ Suche…';
     $('niimbot-info').style.color='var(--orange)';
     updStatus('warn','Verbinde Niimbot…');
     await S.nimClient.connect();
-    // If we get here, connection succeeded
     $('niimbot-info').textContent='✓ Verbunden';
     $('niimbot-info').style.color='var(--green)';
     $('btn-niimbot-connect').style.display='none';
     $('btn-niimbot-dc').style.display='';
     updStatus('ok','Niimbot verbunden');
     toast('Niimbot verbunden!','ok');
+    // Debug: show client methods
+    console.log('nimClient methods:',Object.getOwnPropertyNames(Object.getPrototypeOf(S.nimClient)));
   }catch(e){
     if(e.name!=='NotFoundError')toast('Niimbot: '+e.message,'err');
     $('niimbot-info').textContent='Nicht verbunden';
