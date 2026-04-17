@@ -35,7 +35,7 @@
 </head>
 <body>
 <div class="app">
-  <div class="header"><h1><span class="icon">⬡</span> Scan &amp; Print <span class="badge">Mobile</span> <span class="badge" style="background:var(--green)">v2.3</span></h1></div>
+  <div class="header"><h1><span class="icon">⬡</span> Scan &amp; Print <span class="badge">Mobile</span> <span class="badge" style="background:var(--green)">v2.5</span></h1></div>
   <div class="tab-bar"><button class="tab-btn active" data-tab="scanner">▦ Scanner</button><button class="tab-btn" data-tab="settings">⚙ Einstellungen</button><button class="tab-btn" data-tab="log">☰ Log</button></div>
   <div class="tab-content">
     <!-- SCANNER -->
@@ -52,7 +52,7 @@
     </div>
     <!-- EINSTELLUNGEN -->
     <div class="tab-panel" id="tab-settings">
-      <div class="card"><div class="card-title">Druckertyp</div><div class="type-selector"><button class="type-btn active" data-ptype="standard"><span class="type-icon">🖨</span> Standard</button><button class="type-btn" data-ptype="phomemo"><span class="type-icon">📱</span> Phomemo</button><button class="type-btn" data-ptype="niimbot"><span class="type-icon">🏷</span> Niimbot</button></div></div>
+      <div class="card"><div class="card-title">Druckertyp</div><div class="type-selector"><button class="type-btn active" data-ptype="standard"><span class="type-icon">🖨</span> Standard</button><button class="type-btn" data-ptype="niimbot"><span class="type-icon">🏷</span> Niimbot</button></div></div>
       <!-- Standard -->
       <div class="type-panel active" id="tpanel-standard">
         <div class="card">
@@ -63,15 +63,6 @@
           <div class="method-panel" id="panel-bt"><div id="bt-device-name" style="font-family:var(--mono);font-size:13px;color:var(--text-muted);margin-bottom:10px">Nicht verbunden</div><button class="btn btn-primary btn-block" id="btn-bt-connect">📶 Verbinden</button><button class="btn btn-secondary btn-block" id="btn-bt-disconnect" style="display:none;margin-top:8px">✕ Trennen</button></div>
         </div>
         <div class="card"><div class="card-title">Druckersprache</div><select class="form-select" id="print-lang"><option value="zpl">ZPL</option><option value="epl">EPL</option><option value="tspl">TSPL</option><option value="escpos">ESC/POS</option><option value="raw">RAW</option></select></div>
-      </div>
-      <!-- Phomemo -->
-      <div class="type-panel" id="tpanel-phomemo">
-        <div class="card"><div class="card-title">Phomemo</div><div class="info-hint">Bluetooth-Druck via Web Bluetooth. Chrome/Edge nötig.</div>
-          <div class="form-group"><label class="form-label">Modell</label><select class="form-select" id="phomemo-model"><option value="M221">M221 (75mm, 203DPI)</option><option value="M220">M220</option><option value="M110">M110</option><option value="M120">M120</option><option value="M200">M200</option><option value="M260">M260</option></select></div>
-          <div class="form-group"><label class="form-label">Dichte</label><select class="form-select" id="phomemo-density"><option value="1">Leicht</option><option value="2">Normal</option><option value="3" selected>Dunkel</option></select></div>
-          <div id="phomemo-info" style="font-family:var(--mono);font-size:13px;color:var(--text-muted);margin-bottom:10px">Nicht verbunden</div>
-          <button class="btn btn-primary btn-block" id="btn-phomemo-connect">📶 Phomemo verbinden</button><button class="btn btn-secondary btn-block" id="btn-phomemo-dc" style="display:none;margin-top:8px">✕ Trennen</button>
-        </div>
       </div>
       <!-- Niimbot -->
       <div class="type-panel" id="tpanel-niimbot">
@@ -85,6 +76,10 @@
       <!-- Shared -->
       <div class="card"><div class="card-title">Label-Größe</div><div class="form-row"><div class="form-group"><label class="form-label">Breite (mm)</label><input type="number" class="form-input" id="label-w" value="50" min="10" max="200"></div><div class="form-group"><label class="form-label">Höhe (mm)</label><input type="number" class="form-input" id="label-h" value="30" min="10" max="200"></div></div></div>
       <div class="card"><div class="card-title">Ausgabe</div><div class="method-selector"><button class="method-btn active" data-output="qr">◫ QR-Code</button><button class="method-btn" data-output="1d">▥ Code128</button></div></div>
+      <div class="card"><div class="card-title">Druck-Layout</div>
+        <div class="form-group"><label class="form-label">Ausrichtung</label><div class="method-selector"><button class="method-btn active" data-orient="portrait" id="orient-portrait">↕ Hochformat</button><button class="method-btn" data-orient="landscape" id="orient-landscape">↔ Querformat</button></div></div>
+        <div class="form-group"><label class="form-label">Textabstand zum Barcode: <span id="gap-val">2</span>px</label><input type="range" id="text-gap" min="0" max="30" value="2" style="width:100%;accent-color:var(--accent);"></div>
+      </div>
       <div class="card"><div class="card-title">Vorschau</div><div class="zpl-preview" id="zpl-preview"></div><div class="label-preview-wrap" id="canvas-wrap" style="display:none"><canvas id="label-canvas"></canvas></div><button class="btn btn-secondary btn-block" id="btn-test-print">⎙ Testdruck</button></div>
     </div>
     <!-- LOG -->
@@ -100,14 +95,11 @@
 'use strict';
 const S={scanning:false,lastV:'',lastT:0,history:[],log:[],stream:null,detector:null,scanTimer:null,
   btDev:null,btChar:null,btSrv:null,
-  phoDev:null,phoChar:null,
   nimClient:null,nimAbstraction:null};
 const DUPE=2500,MAXH=8,SAMPLE='4006381333931',DPI203=8,DPI300=11.81;
 
 const BT_SVCS=['38eb4a80-c570-11e3-9507-0002a5d5c51b','000018f0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455','e7810a71-73ae-499d-8c15-faa9aef0c3f2','0000ff00-0000-1000-8000-00805f9b34fb','0000fff0-0000-1000-8000-00805f9b34fb','0000fee7-0000-1000-8000-00805f9b34fb','0000ae30-0000-1000-8000-00805f9b34fb','0000aaf0-0000-1000-8000-00805f9b34fb','00001101-0000-1000-8000-00805f9b34fb','0000feea-0000-1000-8000-00805f9b34fb','6e400001-b5a3-f393-e0a9-e50e24dcca9e','0000ffe0-0000-1000-8000-00805f9b34fb'];
 const NIM_M={B1:{mx:384,d:DPI203},B1Pro:{mx:384,d:DPI300},B21:{mx:384,d:DPI203},B21Pro:{mx:384,d:DPI300},D110:{mx:96,d:DPI203},D11:{mx:96,d:DPI203},B18:{mx:384,d:DPI203}};
-const PHO_M={M221:{mx:576,d:DPI203},M220:{mx:576,d:DPI203},M110:{mx:384,d:DPI203},M120:{mx:384,d:DPI203},M200:{mx:384,d:DPI203},M260:{mx:480,d:DPI203}};
-const PHO_SVC='0000ff00-0000-1000-8000-00805f9b34fb';
 const $=id=>document.getElementById(id);const video=$('cam-video'),overlay=$('cam-overlay'),vw=$('video-wrap');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -119,8 +111,8 @@ function updStatus(t,m){$('printer-dot').className='status-dot '+t;$('printer-st
 
 // ═══ SETTINGS ═══
 const SK='scanprint_mobile_settings';
-function save(){localStorage.setItem(SK,JSON.stringify({pt:pType(),method:getM(),hu:$('http-url').value,hp:$('http-path').value,hus:$('http-user').value,hpw:$('http-pass').value,cu:$('cups-url').value,cus:$('cups-user').value,cpw:$('cups-pass').value,pl:$('print-lang').value,lw:$('label-w').value,lh:$('label-h').value,om:getO(),pm:$('phomemo-model').value,pd:$('phomemo-density').value,nm:$('niimbot-model').value,nd:$('niimbot-density').value,log:S.log,hist:S.history}));}
-function load(){try{const s=JSON.parse(localStorage.getItem(SK));if(!s)return;if(s.pt)selType(s.pt);if(s.method)selMethod(s.method);if(s.hu)$('http-url').value=s.hu;if(s.hp)$('http-path').value=s.hp;if(s.hus)$('http-user').value=s.hus;if(s.hpw)$('http-pass').value=s.hpw;if(s.cu)$('cups-url').value=s.cu;if(s.cus)$('cups-user').value=s.cus;if(s.cpw)$('cups-pass').value=s.cpw;if(s.pl)$('print-lang').value=s.pl;if(s.lw)$('label-w').value=s.lw;if(s.lh)$('label-h').value=s.lh;if(s.om)selOut(s.om);if(s.pm)$('phomemo-model').value=s.pm;if(s.pd)$('phomemo-density').value=s.pd;if(s.nm)$('niimbot-model').value=s.nm;if(s.nd)$('niimbot-density').value=s.nd;if(s.log)S.log=s.log;if(s.hist)S.history=s.hist.slice(0,MAXH);}catch(e){}}
+function save(){localStorage.setItem(SK,JSON.stringify({pt:pType(),method:getM(),hu:$('http-url').value,hp:$('http-path').value,hus:$('http-user').value,hpw:$('http-pass').value,cu:$('cups-url').value,cus:$('cups-user').value,cpw:$('cups-pass').value,pl:$('print-lang').value,lw:$('label-w').value,lh:$('label-h').value,om:getO(),orient:getOrient(),tgap:$('text-gap').value,nm:$('niimbot-model').value,nd:$('niimbot-density').value,log:S.log,hist:S.history}));}
+function load(){try{const s=JSON.parse(localStorage.getItem(SK));if(!s)return;if(s.pt)selType(s.pt);if(s.method)selMethod(s.method);if(s.hu)$('http-url').value=s.hu;if(s.hp)$('http-path').value=s.hp;if(s.hus)$('http-user').value=s.hus;if(s.hpw)$('http-pass').value=s.hpw;if(s.cu)$('cups-url').value=s.cu;if(s.cus)$('cups-user').value=s.cus;if(s.cpw)$('cups-pass').value=s.cpw;if(s.pl)$('print-lang').value=s.pl;if(s.lw)$('label-w').value=s.lw;if(s.lh)$('label-h').value=s.lh;if(s.om)selOut(s.om);if(s.orient)selOrient(s.orient);if(s.tgap){$('text-gap').value=s.tgap;$('gap-val').textContent=s.tgap;}if(s.nm)$('niimbot-model').value=s.nm;if(s.nd)$('niimbot-density').value=s.nd;if(s.log)S.log=s.log;if(s.hist)S.history=s.hist.slice(0,MAXH);}catch(e){}}
 
 // ═══ TABS/SELECTORS ═══
 document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');$('tab-'+b.dataset.tab).classList.add('active');}));
@@ -130,6 +122,12 @@ function selMethod(m){document.querySelectorAll('.method-btn[data-method]').forE
 document.querySelectorAll('.method-btn[data-method]').forEach(b=>b.addEventListener('click',()=>{selMethod(b.dataset.method);save();}));
 function selOut(m){document.querySelectorAll('.method-btn[data-output]').forEach(b=>b.classList.toggle('active',b.dataset.output===m));updPreview();}
 document.querySelectorAll('.method-btn[data-output]').forEach(b=>b.addEventListener('click',()=>{selOut(b.dataset.output);save();}));
+function getOrient(){return document.querySelector('.method-btn[data-orient].active')?.dataset.orient||'portrait';}
+function selOrient(o){document.querySelectorAll('.method-btn[data-orient]').forEach(b=>b.classList.toggle('active',b.dataset.orient===o));updPreview();}
+document.querySelectorAll('.method-btn[data-orient]').forEach(b=>b.addEventListener('click',()=>{selOrient(b.dataset.orient);save();}));
+function getTextGap(){return parseInt($('text-gap').value)||2;}
+$('text-gap').addEventListener('input',()=>{$('gap-val').textContent=$('text-gap').value;updPreview();});
+$('text-gap').addEventListener('change',save);
 
 // ═══ CAMERA ═══
 async function enumCam(){try{const d=await navigator.mediaDevices.enumerateDevices();const c=d.filter(x=>x.kind==='videoinput');const s=$('camera-select');s.innerHTML='';c.forEach((x,i)=>{const o=document.createElement('option');o.value=x.deviceId;const l=x.label||('Kamera '+(i+1));o.textContent=l;if(/back|rear|rück|environment/i.test(l))o.selected=true;s.appendChild(o);});if(!s.value&&c.length)s.selectedIndex=c.length-1;}catch(e){}}
@@ -144,37 +142,40 @@ window._rp=i=>{if(S.history[i])execPrint(S.history[i].value);};window._rl=i=>{if
 
 // ═══ LABEL IMAGE PIPELINE ═══
 function renderLabel(v,wp,hp){
-const c=document.createElement('canvas');c.width=wp;c.height=hp;
-const x=c.getContext('2d');
-x.fillStyle='#FFF';x.fillRect(0,0,wp,hp);x.fillStyle='#000';
+const orient=getOrient();
+const userGap=getTextGap();
+// In landscape: render content on swapped canvas, then rotate
+const isLand=orient==='landscape';
+const cw=isLand?hp:wp, ch=isLand?wp:hp;
+const tmp=document.createElement('canvas');tmp.width=cw;tmp.height=ch;
+const x=tmp.getContext('2d');
+x.fillStyle='#FFF';x.fillRect(0,0,cw,ch);x.fillStyle='#000';
 const mode=getO();
-// Smaller font, tight gap
-const fs=Math.max(8,Math.min(Math.round(wp*.035),16));
+const fs=Math.max(8,Math.min(Math.round(cw*.035),16));
 const txtH=Math.round(fs*1.2);
-const gap=Math.round(Math.min(wp,hp)*.01);
-const margin=Math.round(Math.min(wp,hp)*.03);
+const gap=userGap;
+const margin=Math.round(Math.min(cw,ch)*.03);
 
 if(mode==='qr'){
   try{
     const q=qrcode(0,'M');q.addData(v);q.make();
     const m=q.getModuleCount();
-    const maxW=wp-margin*2;
-    const maxH=hp-margin*2-txtH-gap;
+    const maxW=cw-margin*2;
+    const maxH=ch-margin*2-txtH-gap;
     const maxSz=Math.min(maxW,maxH);
     const cs=Math.floor(maxSz/m);
     const sz=cs*m;
     const totalH=sz+gap+txtH;
-    const startY=Math.round((hp-totalH)/2);
-    const startX=Math.round((wp-sz)/2);
+    const startY=Math.round((ch-totalH)/2);
+    const startX=Math.round((cw-sz)/2);
     for(let r=0;r<m;r++)for(let c2=0;c2<m;c2++)if(q.isDark(r,c2))x.fillRect(startX+c2*cs,startY+r*cs,cs,cs);
-    // Text centered below QR
     x.font=`${fs}px monospace`;x.textAlign='center';x.textBaseline='top';
-    x.fillText(v,wp/2,startY+sz+gap,wp-margin*2);
-  }catch(e){x.font=`bold ${Math.round(hp*.08)}px monospace`;x.textAlign='center';x.textBaseline='middle';x.fillText('QR Err',wp/2,hp/2);}
+    x.fillText(v,cw/2,startY+sz+gap,cw-margin*2);
+  }catch(e){x.font=`bold ${Math.round(ch*.08)}px monospace`;x.textAlign='center';x.textBaseline='middle';x.fillText('QR Err',cw/2,ch/2);}
 } else {
   try{
-    const maxW=wp-margin*2;
-    const bcH=hp-margin*2-txtH-gap;
+    const maxW=cw-margin*2;
+    const bcH=ch-margin*2-txtH-gap;
     const svg=$('bc-svg');
     JsBarcode(svg,v,{format:'CODE128',width:2,height:bcH,displayValue:false,margin:0,background:'#FFF',lineColor:'#000'});
     const rects=svg.querySelectorAll('rect');
@@ -185,8 +186,8 @@ if(mode==='qr'){
     const bcDrawH=Math.min(bcH,sh*scaleX);
     const scaleY=bcDrawH/sh;
     const totalH=bcDrawH+gap+txtH;
-    const startY=Math.round((hp-totalH)/2);
-    const startX=Math.round((wp-bcDrawW)/2);
+    const startY=Math.round((ch-totalH)/2);
+    const startX=Math.round((cw-bcDrawW)/2);
     rects.forEach(r=>{
       const rx=parseFloat(r.getAttribute('x'))*scaleX;
       const ry=parseFloat(r.getAttribute('y'))*scaleY;
@@ -195,12 +196,19 @@ if(mode==='qr'){
       if((r.getAttribute('fill')||'')==='#000000')x.fillRect(startX+rx,startY+ry,rw,rh);
     });
     x.font=`${fs}px monospace`;x.textAlign='center';x.textBaseline='top';
-    x.fillText(v,wp/2,startY+bcDrawH+gap,maxW);
-  }catch(e){x.font=`bold ${Math.round(hp*.08)}px monospace`;x.textAlign='center';x.textBaseline='middle';x.fillText('BC Err',wp/2,hp/2);}
+    x.fillText(v,cw/2,startY+bcDrawH+gap,maxW);
+  }catch(e){x.font=`bold ${Math.round(ch*.08)}px monospace`;x.textAlign='center';x.textBaseline='middle';x.fillText('BC Err',cw/2,ch/2);}
 }
+// If landscape, rotate 90° clockwise to final dimensions
+if(!isLand)return tmp;
+const c=document.createElement('canvas');c.width=wp;c.height=hp;
+const ctx=c.getContext('2d');
+ctx.translate(wp,0);
+ctx.rotate(Math.PI/2);
+ctx.drawImage(tmp,0,0);
 return c;}
 function to1Bit(cv){const x=cv.getContext('2d'),d=x.getImageData(0,0,cv.width,cv.height).data,w=cv.width,h=cv.height,bpl=Math.ceil(w/8),r=new Uint8Array(bpl*h);for(let y=0;y<h;y++)for(let x2=0;x2<w;x2++){const i=(y*w+x2)*4,g=d[i]*.299+d[i+1]*.587+d[i+2]*.114;if(g<128)r[y*bpl+Math.floor(x2/8)]|=(1<<(7-(x2%8)));}return{data:r,w,h,bpl};}
-function labelPx(){const t=pType(),wm=parseInt($('label-w').value)||50,hm=parseInt($('label-h').value)||30;let dp=DPI203,mx=576;if(t==='phomemo'){const m=PHO_M[$('phomemo-model').value]||PHO_M.M221;dp=m.d;mx=m.mx;}else if(t==='niimbot'){const m=NIM_M[$('niimbot-model').value]||NIM_M.B1;dp=m.d;mx=m.mx;}let wp=Math.round(wm*dp);if(wp>mx)wp=mx;return{wp,hp:Math.round(hm*dp)};}
+function labelPx(){const t=pType(),wm=parseInt($('label-w').value)||50,hm=parseInt($('label-h').value)||30;let dp=DPI203,mx=576;if(t==='niimbot'){const m=NIM_M[$('niimbot-model').value]||NIM_M.B1;dp=m.d;mx=m.mx;}let wp=Math.round(wm*dp);if(wp>mx)wp=mx;return{wp,hp:Math.round(hm*dp)};}
 
 // ═══ BT GENERIC (FIXED) ═══
 async function findChar(srv){for(const u of BT_SVCS){try{const svc=await srv.getPrimaryService(u);const ch=await svc.getCharacteristics();for(const c of ch)if(c.properties.writeWithoutResponse||c.properties.write)return c;}catch(e){}}try{const ss=await srv.getPrimaryServices();for(const svc of ss){try{const ch=await svc.getCharacteristics();for(const c of ch)if(c.properties.writeWithoutResponse||c.properties.write)return c;}catch(e){}}}catch(e){}return null;}
@@ -210,52 +218,6 @@ function dcBT(){if(S.btDev?.gatt.connected)S.btDev.gatt.disconnect();btDC();}
 function btDC(){S.btChar=null;S.btSrv=null;$('bt-device-name').textContent='Nicht verbunden';$('bt-device-name').style.color='var(--text-muted)';$('btn-bt-connect').style.display='';$('btn-bt-disconnect').style.display='none';updStatus('warn','BT getrennt');}
 async function autoReconnect(){if(!navigator.bluetooth?.getDevices)return;try{const devs=await navigator.bluetooth.getDevices();for(const d of devs){if(!d.gatt)continue;try{const ac=new AbortController();const to=setTimeout(()=>ac.abort(),4000);await new Promise((res,rej)=>{d.addEventListener('advertisementreceived',async()=>{clearTimeout(to);try{await attachBT(d);res();}catch(e){rej(e);}},{once:true});d.watchAdvertisements({signal:ac.signal}).catch(()=>{clearTimeout(to);rej(new Error('to'));});ac.signal.addEventListener('abort',()=>rej(new Error('to')));});return;}catch(e){}}}catch(e){}}
 async function bleChunk(ch,data,sz=512){for(let i=0;i<data.length;i+=sz){const c=data.slice(i,Math.min(i+sz,data.length));if(ch.properties.writeWithoutResponse)await ch.writeValueWithoutResponse(c);else await ch.writeValueWithResponse(c);if(data.length>sz)await sleep(20);}}
-
-// ═══ PHOMEMO (fixed protocol) ═══
-async function connectPho(){if(!navigator.bluetooth){toast('Kein Web Bluetooth','err');return;}try{const d=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:[PHO_SVC,'000018f0-0000-1000-8000-00805f9b34fb','0000fff0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455']});S.phoDev=d;$('phomemo-info').textContent='⏳…';$('phomemo-info').style.color='var(--orange)';d.addEventListener('gattserverdisconnected',phoDC);const srv=await d.gatt.connect();let ch=await findChar(srv);if(!ch)throw new Error('Keine druckfähige Characteristic');S.phoChar=ch;$('phomemo-info').textContent='✓ '+(d.name||d.id);$('phomemo-info').style.color='var(--green)';$('btn-phomemo-connect').style.display='none';$('btn-phomemo-dc').style.display='';updStatus('ok','Phomemo: '+(d.name||d.id));toast('Phomemo verbunden!','ok');}catch(e){if(e.name!=='NotFoundError')toast('Phomemo: '+e.message,'err');$('phomemo-info').textContent='Nicht verbunden';$('phomemo-info').style.color='var(--text-muted)';}}
-function dcPho(){if(S.phoDev?.gatt.connected)S.phoDev.gatt.disconnect();phoDC();}
-function phoDC(){S.phoChar=null;$('phomemo-info').textContent='Nicht verbunden';$('phomemo-info').style.color='var(--text-muted)';$('btn-phomemo-connect').style.display='';$('btn-phomemo-dc').style.display='none';}
-async function printPho(v){
-  if(!S.phoChar)throw new Error('Phomemo nicht verbunden');
-  const{wp,hp}=labelPx();
-  const cv=renderLabel(v,wp,hp);
-  const{data,bpl,h}=to1Bit(cv);
-  const density=parseInt($('phomemo-density').value)||3;
-  // Build ESC/POS raster protocol (max 255 lines per block)
-  const parts=[];
-  // Init
-  parts.push(new Uint8Array([0x1B,0x40])); // ESC @ reset
-  parts.push(new Uint8Array([0x1B,0x61,0x01])); // ESC a center
-  parts.push(new Uint8Array([0x1F,0x11,0x02,density])); // density
-  // Send image in 255-line blocks
-  let remaining=h;
-  let offset=0;
-  while(remaining>0){
-    const lines=Math.min(remaining,255);
-    const xL=bpl&0xFF,xH=(bpl>>8)&0xFF;
-    const yL=lines&0xFF,yH=(lines>>8)&0xFF;
-    // GS v 0 header
-    const hdr=new Uint8Array([0x1D,0x76,0x30,0x00,xL,xH,yL,yH]);
-    // Image data for this block
-    const blockData=data.slice(offset,offset+lines*bpl);
-    const block=new Uint8Array(hdr.length+blockData.length);
-    block.set(hdr);block.set(blockData,hdr.length);
-    parts.push(block);
-    offset+=lines*bpl;
-    remaining-=lines;
-  }
-  // Feed and end
-  parts.push(new Uint8Array([0x1B,0x64,0x02])); // feed 2 lines
-  parts.push(new Uint8Array([0x1F,0x11,0x08]));
-  parts.push(new Uint8Array([0x1F,0x11,0x0E]));
-  parts.push(new Uint8Array([0x1F,0x11,0x07]));
-  parts.push(new Uint8Array([0x1F,0x11,0x09]));
-  // Send all parts
-  for(const part of parts){
-    await bleChunk(S.phoChar,part);
-    await sleep(30);
-  }
-}
 
 // ═══ NIIMBOT (via niimbluelib – verified from source) ═══
 // PrintTaskName must be one of: "D11_V1", "D110", "B1", "B21_V1", "D110M_V4"
@@ -307,7 +269,7 @@ async function printNim(v){
   const cv=renderLabel(v,wp,hp);
   const model=$('niimbot-model').value;
   const density=parseInt($('niimbot-density').value)||3;
-  const printDir=(model==='D110'||model==='D11')?'left':'top';
+  const printDir=(model==='D110'||model==='D11')?'left':(getOrient()==='landscape'?'left':'top');
   const taskName=NIM_TASK_NAME[model]||'B1';
   // 1. Encode image
   const encoded=niimbluelib.ImageEncoder.encodeCanvas(cv,printDir);
@@ -330,13 +292,16 @@ async function printNim(v){
 
 // ═══ STD PRINT CMDS ═══
 function genPrint(v){
-const l=$('print-lang').value,m=getO(),w=parseInt($('label-w').value)||50,h=parseInt($('label-h').value)||30,dw=w*8,dh=h*8;
+const l=$('print-lang').value,m=getO(),w=parseInt($('label-w').value)||50,h=parseInt($('label-h').value)||30;
+const isLand=getOrient()==='landscape';
+const dw=(isLand?h:w)*8, dh=(isLand?w:h)*8;
+const rot=isLand?'\n^FWR':'';
+const userGap=getTextGap();
 if(l==='zpl'){
   const fontH=Math.max(16,Math.round(dh*.05));
-  const gap=Math.max(4,Math.round(dh*.01));
+  const gap=userGap>0?userGap:Math.max(4,Math.round(dh*.01));
   const margin=Math.round(dw*.03);
   if(m==='qr'){
-    // QR: 21 modules for short data (version 1), maximize magnification
     const estMod=21;
     const maxSz=Math.min(dw-margin*2, dh-margin*2-fontH-gap);
     const mag=Math.max(1,Math.min(10,Math.floor(maxSz/estMod)));
@@ -345,31 +310,31 @@ if(l==='zpl'){
     const totalH=qrSz+gap+fontH;
     const qrY=Math.round((dh-totalH)/2);
     const txtY=qrY+qrSz+gap;
-    return `^XA\n^PW${dw}\n^LL${dh}\n^FO${qrX},${qrY}\n^BQN,2,${mag}\n^FDQA,${v}^FS\n^FO0,${txtY}\n^FB${dw},1,0,C,0\n^A0N,${fontH},${fontH}\n^FD${v}^FS\n^XZ`;
+    return `^XA${rot}\n^PW${isLand?h*8:w*8}\n^LL${isLand?w*8:h*8}\n^FO${qrX},${qrY}\n^BQN,2,${mag}\n^FDQA,${v}^FS\n^FO0,${txtY}\n^FB${dw},1,0,C,0\n^A0N,${fontH},${fontH}\n^FD${v}^FS\n^XZ`;
   } else {
     const bcH=Math.max(40,dh-margin*2-fontH-gap);
     const totalH=bcH+gap+fontH;
     const bcY=Math.round((dh-totalH)/2);
     const txtY=bcY+bcH+gap;
     const barW=Math.max(1,Math.min(4,Math.floor((dw-margin*2)/120)));
-    return `^XA\n^PW${dw}\n^LL${dh}\n^FO${margin},${bcY}\n^FB${dw-margin*2},1,0,C,0\n^BY${barW}\n^BCN,${bcH},N,N,N\n^FD${v}^FS\n^FO0,${txtY}\n^FB${dw},1,0,C,0\n^A0N,${fontH},${fontH}\n^FD${v}^FS\n^XZ`;
+    return `^XA${rot}\n^PW${isLand?h*8:w*8}\n^LL${isLand?w*8:h*8}\n^FO${margin},${bcY}\n^FB${dw-margin*2},1,0,C,0\n^BY${barW}\n^BCN,${bcH},N,N,N\n^FD${v}^FS\n^FO0,${txtY}\n^FB${dw},1,0,C,0\n^A0N,${fontH},${fontH}\n^FD${v}^FS\n^XZ`;
   }
 }
 if(l==='epl'){
-  const fontH=Math.round(dh*.05);const gap=Math.round(dh*.01);const availH=dh-fontH-gap-Math.round(dh*.06);
+  const fontH=Math.round(dh*.05);const gap=userGap>0?userGap:Math.round(dh*.01);const availH=dh-fontH-gap-Math.round(dh*.06);
   if(m==='qr'){const mag=Math.max(1,Math.min(10,Math.floor(Math.min(dw,availH)/21)));const sz=mag*21;const ox=Math.round((dw-sz)/2);const oy=Math.round((dh-sz-gap-fontH)/2);return `\nN\nq${dw}\nQ${dh},24\nb${ox},${oy},Q,s${mag},"${v}"\nA${Math.round((dw-v.length*12)/2)},${oy+sz+gap},0,3,1,1,N,"${v}"\nP1\n`;}
   else{const bcH=Math.max(40,availH);const oy=Math.round((dh-bcH-gap-fontH)/2);return `\nN\nq${dw}\nQ${dh},24\nB${Math.round(dw*.05)},${oy},0,1,2,4,${bcH},N,"${v}"\nA${Math.round((dw-v.length*12)/2)},${oy+bcH+gap},0,3,1,1,N,"${v}"\nP1\n`;}
 }
 if(l==='tspl'){
-  const d=8,pw=w*d,ph=h*d,fontH=Math.round(ph*.05),gap=Math.round(ph*.01),availH=ph-fontH-gap-Math.round(ph*.06);
-  if(m==='qr'){const mag=Math.max(1,Math.min(10,Math.floor(Math.min(pw,availH)/21)));const sz=mag*21;const ox=Math.round((pw-sz)/2);const oy=Math.round((ph-sz-gap-fontH)/2);return `SIZE ${w} mm, ${h} mm\nGAP 2 mm, 0 mm\nCLS\nQRCODE ${ox},${oy},L,${mag},A,0,"${v}"\nTEXT ${Math.round(pw/2)},${oy+sz+gap},"3",0,1,1,1,"${v}"\nPRINT 1,1\n`;}
-  else{const bcH=Math.max(40,availH);const oy=Math.round((ph-bcH-gap-fontH)/2);return `SIZE ${w} mm, ${h} mm\nGAP 2 mm, 0 mm\nCLS\nBARCODE ${Math.round(pw*.05)},${oy},"128",${bcH},1,0,2,2,"${v}"\nTEXT ${Math.round(pw/2)},${oy+bcH+gap},"3",0,1,1,1,"${v}"\nPRINT 1,1\n`;}
+  const d=8,pw=(isLand?h:w)*d,ph=(isLand?w:h)*d,fontH=Math.round(ph*.05),gap=userGap>0?userGap:Math.round(ph*.01),availH=ph-fontH-gap-Math.round(ph*.06);
+  if(m==='qr'){const mag=Math.max(1,Math.min(10,Math.floor(Math.min(pw,availH)/21)));const sz=mag*21;const ox=Math.round((pw-sz)/2);const oy=Math.round((ph-sz-gap-fontH)/2);return `SIZE ${w} mm, ${h} mm\nGAP 2 mm, 0 mm\n${isLand?'DIRECTION 1\n':''}CLS\nQRCODE ${ox},${oy},L,${mag},A,0,"${v}"\nTEXT ${Math.round(pw/2)},${oy+sz+gap},"3",0,1,1,1,"${v}"\nPRINT 1,1\n`;}
+  else{const bcH=Math.max(40,availH);const oy=Math.round((ph-bcH-gap-fontH)/2);return `SIZE ${w} mm, ${h} mm\nGAP 2 mm, 0 mm\n${isLand?'DIRECTION 1\n':''}CLS\nBARCODE ${Math.round(pw*.05)},${oy},"128",${bcH},1,0,2,2,"${v}"\nTEXT ${Math.round(pw/2)},${oy+bcH+gap},"3",0,1,1,1,"${v}"\nPRINT 1,1\n`;}
 }
 if(l==='escpos'){const E='\x1B',G='\x1D';let c=E+'@'+E+'a\x01';if(m==='qr'){const n=v.length+3;const sz=Math.max(3,Math.min(12,Math.floor((w*8)/21)));c+=G+'(k\x04\x001A2\x00'+G+'(k\x03\x001C'+String.fromCharCode(sz)+G+'(k\x03\x001E\x31'+G+'(k'+String.fromCharCode(n&0xFF,(n>>8)&0xFF)+'1P0'+v+G+'(k\x03\x001Q0';}else{const bcH=Math.max(40,Math.round(h*8*.6));c+=G+'h'+String.fromCharCode(bcH)+G+'w\x02'+G+'H\x02'+G+'k\x49'+String.fromCharCode(v.length)+v;}return c+'\n'+v+'\n'+G+'V\x41\x03';}
 return v;}
 
 // ═══ PRINT DISPATCH ═══
-async function execPrint(v){const t=pType();let st='OK',err='';try{if(t==='phomemo')await printPho(v);else if(t==='niimbot')await printNim(v);else{const m=getM(),d=genPrint(v);if(m==='http')await printHTTP(d);else if(m==='cups')await printCUPS(d);else if(m==='bt')await printStdBT(d);}}catch(e){st='ERR';err=e.message||'Fehler';}S.log.unshift({id:Date.now(),value:v,status:st,error:err,time:new Date().toLocaleString('de-DE')});renderLog();updStatus(st==='OK'?'ok':'err',st==='OK'?'Gedruckt':'Fehler: '+err);toast(st==='OK'?'Gedruckt: '+v:'Fehler: '+err,st==='OK'?'ok':'err');save();}
+async function execPrint(v){const t=pType();let st='OK',err='';try{if(t==='niimbot')await printNim(v);else{const m=getM(),d=genPrint(v);if(m==='http')await printHTTP(d);else if(m==='cups')await printCUPS(d);else if(m==='bt')await printStdBT(d);}}catch(e){st='ERR';err=e.message||'Fehler';}S.log.unshift({id:Date.now(),value:v,status:st,error:err,time:new Date().toLocaleString('de-DE')});renderLog();updStatus(st==='OK'?'ok':'err',st==='OK'?'Gedruckt':'Fehler: '+err);toast(st==='OK'?'Gedruckt: '+v:'Fehler: '+err,st==='OK'?'ok':'err');save();}
 async function printHTTP(d){let u=$('http-url').value.trim();if(!u)throw new Error('Keine URL');const p=$('http-path').value.trim();if(p)u=u.replace(/\/$/,'')+p;const h={'Content-Type':'application/octet-stream'};const us=$('http-user').value,pw=$('http-pass').value;if(us)h['Authorization']='Basic '+btoa(us+':'+pw);const r=await fetch(u,{method:'POST',headers:h,body:d,mode:'cors'});if(!r.ok)throw new Error('HTTP '+r.status);}
 async function printCUPS(d){const b=$('cups-url').value.trim()||'http://localhost:631',pr=$('cups-printer').value;if(!pr)throw new Error('Kein Drucker');const h={'Content-Type':'application/octet-stream'};const u=$('cups-user').value,p=$('cups-pass').value;if(u)h['Authorization']='Basic '+btoa(u+':'+p);const r=await fetch(b.replace(/\/$/,'')+'/printers/'+pr,{method:'POST',headers:h,body:d});if(!r.ok)throw new Error('CUPS '+r.status);}
 async function printStdBT(d){if(!S.btChar)throw new Error('Kein BT-Drucker');await bleChunk(S.btChar,new TextEncoder().encode(d));}
@@ -392,11 +357,10 @@ $('btn-manual-print').addEventListener('click',()=>{const v=$('manual-input').va
 $('manual-input').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('btn-manual-print').click();}});
 $('btn-test-http').addEventListener('click',testHTTP);$('btn-load-cups').addEventListener('click',loadCups);
 $('btn-bt-connect').addEventListener('click',connectBT);$('btn-bt-disconnect').addEventListener('click',dcBT);
-$('btn-phomemo-connect').addEventListener('click',connectPho);$('btn-phomemo-dc').addEventListener('click',dcPho);
 $('btn-niimbot-connect').addEventListener('click',connectNim);$('btn-niimbot-dc').addEventListener('click',dcNim);
 $('btn-test-print').addEventListener('click',()=>execPrint(SAMPLE));$('btn-export-csv').addEventListener('click',exportCSV);$('btn-clear-log').addEventListener('click',clearLog);
 $('camera-select').addEventListener('change',()=>{if(S.scanning){stopScan();startScan();}});
-['print-lang','label-w','label-h','phomemo-model','phomemo-density','niimbot-model','niimbot-density'].forEach(id=>{$(id).addEventListener('change',()=>{updPreview();save();});$(id).addEventListener('input',()=>{updPreview();save();});});
+['print-lang','label-w','label-h','niimbot-model','niimbot-density'].forEach(id=>{$(id).addEventListener('change',()=>{updPreview();save();});$(id).addEventListener('input',()=>{updPreview();save();});});
 ['http-url','http-path','http-user','http-pass','cups-url','cups-user','cups-pass'].forEach(id=>$(id).addEventListener('change',save));
 
 // ═══ INIT ═══
