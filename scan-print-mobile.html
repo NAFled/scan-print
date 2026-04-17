@@ -35,7 +35,7 @@
 </head>
 <body>
 <div class="app">
-  <div class="header"><h1><span class="icon">⬡</span> Scan &amp; Print <span class="badge">Mobile</span> <span class="badge" style="background:var(--green)">v2.1</span></h1></div>
+  <div class="header"><h1><span class="icon">⬡</span> Scan &amp; Print <span class="badge">Mobile</span> <span class="badge" style="background:var(--green)">v2.3</span></h1></div>
   <div class="tab-bar"><button class="tab-btn active" data-tab="scanner">▦ Scanner</button><button class="tab-btn" data-tab="settings">⚙ Einstellungen</button><button class="tab-btn" data-tab="log">☰ Log</button></div>
   <div class="tab-content">
     <!-- SCANNER -->
@@ -257,12 +257,13 @@ async function printPho(v){
   }
 }
 
-// ═══ NIIMBOT (via niimbluelib – correct API) ═══
-const NIM_TASK_CLASS={
-  B1:'B1PrintTask',B1Pro:'B1PrintTask',
-  B21:'B21V1PrintTask',B21Pro:'B21V1PrintTask',
-  D110:'D110PrintTask',D11:'OldD11PrintTask',
-  B18:'B21V1PrintTask'
+// ═══ NIIMBOT (via niimbluelib – verified from source) ═══
+// PrintTaskName must be one of: "D11_V1", "D110", "B1", "B21_V1", "D110M_V4"
+const NIM_TASK_NAME={
+  B1:'B1', B1Pro:'B1',
+  B21:'B21_V1', B21Pro:'B21_V1',
+  D110:'D110', D11:'D11_V1',
+  B18:'B21_V1'
 };
 async function connectNim(){
   if(typeof niimbluelib==='undefined'){toast('niimbluelib nicht geladen','err');return;}
@@ -301,26 +302,30 @@ function nimDC(){
 }
 async function printNim(v){
   if(!S.nimClient||!S.nimClient.isConnected())throw new Error('Niimbot nicht verbunden');
+  if(!S.nimAbstraction)throw new Error('Niimbot Abstraction fehlt');
   const{wp,hp}=labelPx();
   const cv=renderLabel(v,wp,hp);
   const model=$('niimbot-model').value;
   const density=parseInt($('niimbot-density').value)||3;
   const printDir=(model==='D110'||model==='D11')?'left':'top';
-  // Encode image
+  const taskName=NIM_TASK_NAME[model]||'B1';
+  // 1. Encode image
   const encoded=niimbluelib.ImageEncoder.encodeCanvas(cv,printDir);
-  // Get correct print task class for model
-  const taskClassName=NIM_TASK_CLASS[model]||'B1PrintTask';
-  const TaskClass=niimbluelib[taskClassName];
-  if(!TaskClass)throw new Error('PrintTask "'+taskClassName+'" nicht gefunden');
-  // Create task and print
-  const task=new TaskClass(S.nimAbstraction);
-  await task.print(encoded,{
-    quantity:1,
+  // 2. Create print task via abstraction.newPrintTask
+  const task=S.nimAbstraction.newPrintTask(taskName,{
+    totalPages:1,
     density:density,
-    labelType:1,
-    width:wp,
-    height:hp,
+    labelType:1
   });
+  // 3. Execute print sequence
+  try{
+    await task.printInit();
+    await task.printPage(encoded,1);
+    await task.waitForPageFinished();
+    await task.waitForFinished();
+  }finally{
+    await S.nimAbstraction.printEnd();
+  }
 }
 
 // ═══ STD PRINT CMDS ═══
