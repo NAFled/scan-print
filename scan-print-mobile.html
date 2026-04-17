@@ -35,7 +35,7 @@
 </head>
 <body>
 <div class="app">
-  <div class="header"><h1><span class="icon">⬡</span> Scan &amp; Print <span class="badge">Mobile</span> <span class="badge" style="background:var(--green)">v2.8</span></h1></div>
+  <div class="header"><h1><span class="icon">⬡</span> Scan &amp; Print <span class="badge">Mobile</span> <span class="badge" style="background:var(--green)">v2.9</span></h1></div>
   <div class="tab-bar"><button class="tab-btn active" data-tab="scanner">▦ Scanner</button><button class="tab-btn" data-tab="settings">⚙ Einstellungen</button><button class="tab-btn" data-tab="log">☰ Log</button></div>
   <div class="tab-content">
     <!-- SCANNER -->
@@ -90,7 +90,7 @@
   </div>
 </div>
 <div class="toast-container" id="toast-container"></div>
-<canvas id="bc-canvas" style="display:none"></canvas><svg id="bc-svg" style="display:none"></svg>
+<canvas id="bc-canvas" style="display:none"></canvas>
 <script>
 (()=>{
 'use strict';
@@ -180,27 +180,21 @@ if(mode==='qr'){
   try{
     const maxW=cw-margin*2;
     const bcH=ch-margin*2-txtH-gap;
-    const svg=$('bc-svg');
-    JsBarcode(svg,v,{format:'CODE128',width:2,height:bcH,displayValue:false,margin:0,background:'#FFF',lineColor:'#000'});
-    const rects=svg.querySelectorAll('rect');
-    const sw=parseFloat(svg.getAttribute('width'))||1;
-    const sh=parseFloat(svg.getAttribute('height'))||1;
-    const scaleX=maxW/sw;
-    const bcDrawW=sw*scaleX;
-    const bcDrawH=Math.min(bcH,sh*scaleX);
-    const scaleY=bcDrawH/sh;
-    const totalH=bcDrawH+gap+txtH;
+    // Render barcode to a temp canvas directly (avoids SVG parsing issues)
+    const bcCanvas=document.createElement('canvas');
+    JsBarcode(bcCanvas,v,{format:'CODE128',width:2,height:bcH,displayValue:false,margin:0,background:'#FFFFFF',lineColor:'#000000'});
+    // Scale to fit label width
+    const bcW=bcCanvas.width;
+    const bcHReal=bcCanvas.height;
+    const scale=Math.min(maxW/bcW, bcH/bcHReal);
+    const drawW=Math.round(bcW*scale);
+    const drawH=Math.round(bcHReal*scale);
+    const totalH=drawH+gap+txtH;
     const startY=Math.round((ch-totalH)/2);
-    const startX=Math.round((cw-bcDrawW)/2);
-    rects.forEach(r=>{
-      const rx=parseFloat(r.getAttribute('x'))*scaleX;
-      const ry=parseFloat(r.getAttribute('y'))*scaleY;
-      const rw=Math.max(1,parseFloat(r.getAttribute('width'))*scaleX);
-      const rh=parseFloat(r.getAttribute('height'))*scaleY;
-      if((r.getAttribute('fill')||'')==='#000000')x.fillRect(startX+rx,startY+ry,rw,rh);
-    });
+    const startX=Math.round((cw-drawW)/2);
+    x.drawImage(bcCanvas,startX,startY,drawW,drawH);
     x.font=`${fs}px monospace`;x.textAlign='center';x.textBaseline='top';
-    x.fillText(v,cw/2,startY+bcDrawH+gap,maxW);
+    x.fillText(v,cw/2,startY+drawH+gap,maxW);
   }catch(e){x.font=`bold ${Math.round(ch*.08)}px monospace`;x.textAlign='center';x.textBaseline='middle';x.fillText('BC Err',cw/2,ch/2);}
 }
 // Landscape: return canvas with swapped dims (rotation handled by printer/library)
