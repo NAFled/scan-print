@@ -35,7 +35,7 @@
 </head>
 <body>
 <div class="app">
-  <div class="header"><h1><span class="icon">⬡</span> Scan &amp; Print <span class="badge">Mobile</span> <span class="badge" style="background:var(--green)">v2.7</span></h1></div>
+  <div class="header"><h1><span class="icon">⬡</span> Scan &amp; Print <span class="badge">Mobile</span> <span class="badge" style="background:var(--green)">v2.8</span></h1></div>
   <div class="tab-bar"><button class="tab-btn active" data-tab="scanner">▦ Scanner</button><button class="tab-btn" data-tab="settings">⚙ Einstellungen</button><button class="tab-btn" data-tab="log">☰ Log</button></div>
   <div class="tab-content">
     <!-- SCANNER -->
@@ -78,6 +78,7 @@
       <div class="card"><div class="card-title">Ausgabe</div><div class="method-selector"><button class="method-btn active" data-output="qr">◫ QR-Code</button><button class="method-btn" data-output="1d">▥ Code128</button></div></div>
       <div class="card"><div class="card-title">Druck-Layout</div>
         <div class="form-group"><label class="form-label">Ausrichtung</label><div class="method-selector"><button class="method-btn active" data-orient="portrait" id="orient-portrait">↕ Hochformat</button><button class="method-btn" data-orient="landscape" id="orient-landscape">↔ Querformat</button></div></div>
+        <div class="form-group"><label class="form-label">Schriftgröße: <span id="fs-val">12</span>px</label><input type="range" id="font-size" min="6" max="40" value="12" style="width:100%;accent-color:var(--accent);"></div>
         <div class="form-group"><label class="form-label">Textabstand zum Barcode: <span id="gap-val">2</span>px</label><input type="range" id="text-gap" min="0" max="30" value="2" style="width:100%;accent-color:var(--accent);"></div>
       </div>
       <div class="card"><div class="card-title">Vorschau</div><div class="zpl-preview" id="zpl-preview"></div><div class="label-preview-wrap" id="canvas-wrap" style="display:none"><canvas id="label-canvas"></canvas></div><button class="btn btn-secondary btn-block" id="btn-test-print">⎙ Testdruck</button></div>
@@ -111,8 +112,8 @@ function updStatus(t,m){$('printer-dot').className='status-dot '+t;$('printer-st
 
 // ═══ SETTINGS ═══
 const SK='scanprint_mobile_settings';
-function save(){localStorage.setItem(SK,JSON.stringify({pt:pType(),method:getM(),hu:$('http-url').value,hp:$('http-path').value,hus:$('http-user').value,hpw:$('http-pass').value,cu:$('cups-url').value,cus:$('cups-user').value,cpw:$('cups-pass').value,pl:$('print-lang').value,lw:$('label-w').value,lh:$('label-h').value,om:getO(),orient:getOrient(),tgap:$('text-gap').value,nm:$('niimbot-model').value,nd:$('niimbot-density').value,log:S.log,hist:S.history}));}
-function load(){try{const s=JSON.parse(localStorage.getItem(SK));if(!s)return;if(s.pt)selType(s.pt);if(s.method)selMethod(s.method);if(s.hu)$('http-url').value=s.hu;if(s.hp)$('http-path').value=s.hp;if(s.hus)$('http-user').value=s.hus;if(s.hpw)$('http-pass').value=s.hpw;if(s.cu)$('cups-url').value=s.cu;if(s.cus)$('cups-user').value=s.cus;if(s.cpw)$('cups-pass').value=s.cpw;if(s.pl)$('print-lang').value=s.pl;if(s.lw)$('label-w').value=s.lw;if(s.lh)$('label-h').value=s.lh;if(s.om)selOut(s.om);if(s.orient)selOrient(s.orient);if(s.tgap){$('text-gap').value=s.tgap;$('gap-val').textContent=s.tgap;}if(s.nm)$('niimbot-model').value=s.nm;if(s.nd)$('niimbot-density').value=s.nd;if(s.log)S.log=s.log;if(s.hist)S.history=s.hist.slice(0,MAXH);}catch(e){}}
+function save(){localStorage.setItem(SK,JSON.stringify({pt:pType(),method:getM(),hu:$('http-url').value,hp:$('http-path').value,hus:$('http-user').value,hpw:$('http-pass').value,cu:$('cups-url').value,cus:$('cups-user').value,cpw:$('cups-pass').value,pl:$('print-lang').value,lw:$('label-w').value,lh:$('label-h').value,om:getO(),orient:getOrient(),tgap:$('text-gap').value,fsz:$('font-size').value,nm:$('niimbot-model').value,nd:$('niimbot-density').value,log:S.log,hist:S.history}));}
+function load(){try{const s=JSON.parse(localStorage.getItem(SK));if(!s)return;if(s.pt)selType(s.pt);if(s.method)selMethod(s.method);if(s.hu)$('http-url').value=s.hu;if(s.hp)$('http-path').value=s.hp;if(s.hus)$('http-user').value=s.hus;if(s.hpw)$('http-pass').value=s.hpw;if(s.cu)$('cups-url').value=s.cu;if(s.cus)$('cups-user').value=s.cus;if(s.cpw)$('cups-pass').value=s.cpw;if(s.pl)$('print-lang').value=s.pl;if(s.lw)$('label-w').value=s.lw;if(s.lh)$('label-h').value=s.lh;if(s.om)selOut(s.om);if(s.orient)selOrient(s.orient);if(s.tgap){$('text-gap').value=s.tgap;$('gap-val').textContent=s.tgap;}if(s.fsz){$('font-size').value=s.fsz;$('fs-val').textContent=s.fsz;}if(s.nm)$('niimbot-model').value=s.nm;if(s.nd)$('niimbot-density').value=s.nd;if(s.log)S.log=s.log;if(s.hist)S.history=s.hist.slice(0,MAXH);}catch(e){}}
 
 // ═══ TABS/SELECTORS ═══
 document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');$('tab-'+b.dataset.tab).classList.add('active');}));
@@ -128,6 +129,9 @@ document.querySelectorAll('.method-btn[data-orient]').forEach(b=>b.addEventListe
 function getTextGap(){return parseInt($('text-gap').value)||2;}
 $('text-gap').addEventListener('input',()=>{$('gap-val').textContent=$('text-gap').value;updPreview();});
 $('text-gap').addEventListener('change',save);
+function getFontSize(){return parseInt($('font-size').value)||12;}
+$('font-size').addEventListener('input',()=>{$('fs-val').textContent=$('font-size').value;updPreview();});
+$('font-size').addEventListener('change',save);
 
 // ═══ CAMERA ═══
 async function enumCam(){try{const d=await navigator.mediaDevices.enumerateDevices();const c=d.filter(x=>x.kind==='videoinput');const s=$('camera-select');s.innerHTML='';c.forEach((x,i)=>{const o=document.createElement('option');o.value=x.deviceId;const l=x.label||('Kamera '+(i+1));o.textContent=l;if(/back|rear|rück|environment/i.test(l))o.selected=true;s.appendChild(o);});if(!s.value&&c.length)s.selectedIndex=c.length-1;}catch(e){}}
@@ -151,7 +155,7 @@ const tmp=document.createElement('canvas');tmp.width=cw;tmp.height=ch;
 const x=tmp.getContext('2d');
 x.fillStyle='#FFF';x.fillRect(0,0,cw,ch);x.fillStyle='#000';
 const mode=getO();
-const fs=Math.max(8,Math.min(Math.round(cw*.035),16));
+const fs=getFontSize();
 const txtH=Math.round(fs*1.2);
 const gap=userGap;
 const margin=Math.round(Math.min(cw,ch)*.03);
@@ -292,7 +296,7 @@ const dw=(isLand?h:w)*8, dh=(isLand?w:h)*8;
 const rot=isLand?'\n^FWR':'';
 const userGap=getTextGap();
 if(l==='zpl'){
-  const fontH=Math.max(16,Math.round(dh*.05));
+  const fontH=getFontSize();
   const gap=userGap>0?userGap:Math.max(4,Math.round(dh*.01));
   const margin=Math.round(dw*.03);
   if(m==='qr'){
@@ -315,12 +319,12 @@ if(l==='zpl'){
   }
 }
 if(l==='epl'){
-  const fontH=Math.round(dh*.05);const gap=userGap>0?userGap:Math.round(dh*.01);const availH=dh-fontH-gap-Math.round(dh*.06);
+  const fontH=getFontSize();const gap=userGap>0?userGap:Math.round(dh*.01);const availH=dh-fontH-gap-Math.round(dh*.06);
   if(m==='qr'){const mag=Math.max(1,Math.min(10,Math.floor(Math.min(dw,availH)/21)));const sz=mag*21;const ox=Math.round((dw-sz)/2);const oy=Math.round((dh-sz-gap-fontH)/2);return `\nN\nq${dw}\nQ${dh},24\nb${ox},${oy},Q,s${mag},"${v}"\nA${Math.round((dw-v.length*12)/2)},${oy+sz+gap},0,3,1,1,N,"${v}"\nP1\n`;}
   else{const bcH=Math.max(40,availH);const oy=Math.round((dh-bcH-gap-fontH)/2);return `\nN\nq${dw}\nQ${dh},24\nB${Math.round(dw*.05)},${oy},0,1,2,4,${bcH},N,"${v}"\nA${Math.round((dw-v.length*12)/2)},${oy+bcH+gap},0,3,1,1,N,"${v}"\nP1\n`;}
 }
 if(l==='tspl'){
-  const d=8,pw=(isLand?h:w)*d,ph=(isLand?w:h)*d,fontH=Math.round(ph*.05),gap=userGap>0?userGap:Math.round(ph*.01),availH=ph-fontH-gap-Math.round(ph*.06);
+  const d=8,pw=(isLand?h:w)*d,ph=(isLand?w:h)*d,fontH=getFontSize(),gap=userGap>0?userGap:Math.round(ph*.01),availH=ph-fontH-gap-Math.round(ph*.06);
   if(m==='qr'){const mag=Math.max(1,Math.min(10,Math.floor(Math.min(pw,availH)/21)));const sz=mag*21;const ox=Math.round((pw-sz)/2);const oy=Math.round((ph-sz-gap-fontH)/2);return `SIZE ${w} mm, ${h} mm\nGAP 2 mm, 0 mm\n${isLand?'DIRECTION 1\n':''}CLS\nQRCODE ${ox},${oy},L,${mag},A,0,"${v}"\nTEXT ${Math.round(pw/2)},${oy+sz+gap},"3",0,1,1,1,"${v}"\nPRINT 1,1\n`;}
   else{const bcH=Math.max(40,availH);const oy=Math.round((ph-bcH-gap-fontH)/2);return `SIZE ${w} mm, ${h} mm\nGAP 2 mm, 0 mm\n${isLand?'DIRECTION 1\n':''}CLS\nBARCODE ${Math.round(pw*.05)},${oy},"128",${bcH},1,0,2,2,"${v}"\nTEXT ${Math.round(pw/2)},${oy+bcH+gap},"3",0,1,1,1,"${v}"\nPRINT 1,1\n`;}
 }
