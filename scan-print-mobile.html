@@ -35,7 +35,7 @@
 </head>
 <body>
 <div class="app">
-  <div class="header"><h1><span class="icon">⬡</span> Scan &amp; Print <span class="badge">Mobile</span> <span class="badge" style="background:var(--green)">v2.5</span></h1></div>
+  <div class="header"><h1><span class="icon">⬡</span> Scan &amp; Print <span class="badge">Mobile</span> <span class="badge" style="background:var(--green)">v2.7</span></h1></div>
   <div class="tab-bar"><button class="tab-btn active" data-tab="scanner">▦ Scanner</button><button class="tab-btn" data-tab="settings">⚙ Einstellungen</button><button class="tab-btn" data-tab="log">☰ Log</button></div>
   <div class="tab-content">
     <!-- SCANNER -->
@@ -96,7 +96,7 @@
 const S={scanning:false,lastV:'',lastT:0,history:[],log:[],stream:null,detector:null,scanTimer:null,
   btDev:null,btChar:null,btSrv:null,
   nimClient:null,nimAbstraction:null};
-const DUPE=2500,MAXH=8,SAMPLE='4006381333931',DPI203=8,DPI300=11.81;
+const DUPE=2500,MAXH=8,SAMPLE='A1-811-1-1-2-1',DPI203=8,DPI300=11.81;
 
 const BT_SVCS=['38eb4a80-c570-11e3-9507-0002a5d5c51b','000018f0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455','e7810a71-73ae-499d-8c15-faa9aef0c3f2','0000ff00-0000-1000-8000-00805f9b34fb','0000fff0-0000-1000-8000-00805f9b34fb','0000fee7-0000-1000-8000-00805f9b34fb','0000ae30-0000-1000-8000-00805f9b34fb','0000aaf0-0000-1000-8000-00805f9b34fb','00001101-0000-1000-8000-00805f9b34fb','0000feea-0000-1000-8000-00805f9b34fb','6e400001-b5a3-f393-e0a9-e50e24dcca9e','0000ffe0-0000-1000-8000-00805f9b34fb'];
 const NIM_M={B1:{mx:384,d:DPI203},B1Pro:{mx:384,d:DPI300},B21:{mx:384,d:DPI203},B21Pro:{mx:384,d:DPI300},D110:{mx:96,d:DPI203},D11:{mx:96,d:DPI203},B18:{mx:384,d:DPI203}};
@@ -199,14 +199,8 @@ if(mode==='qr'){
     x.fillText(v,cw/2,startY+bcDrawH+gap,maxW);
   }catch(e){x.font=`bold ${Math.round(ch*.08)}px monospace`;x.textAlign='center';x.textBaseline='middle';x.fillText('BC Err',cw/2,ch/2);}
 }
-// If landscape, rotate 90° clockwise to final dimensions
-if(!isLand)return tmp;
-const c=document.createElement('canvas');c.width=wp;c.height=hp;
-const ctx=c.getContext('2d');
-ctx.translate(wp,0);
-ctx.rotate(Math.PI/2);
-ctx.drawImage(tmp,0,0);
-return c;}
+// Landscape: return canvas with swapped dims (rotation handled by printer/library)
+return tmp;}
 function to1Bit(cv){const x=cv.getContext('2d'),d=x.getImageData(0,0,cv.width,cv.height).data,w=cv.width,h=cv.height,bpl=Math.ceil(w/8),r=new Uint8Array(bpl*h);for(let y=0;y<h;y++)for(let x2=0;x2<w;x2++){const i=(y*w+x2)*4,g=d[i]*.299+d[i+1]*.587+d[i+2]*.114;if(g<128)r[y*bpl+Math.floor(x2/8)]|=(1<<(7-(x2%8)));}return{data:r,w,h,bpl};}
 function labelPx(){const t=pType(),wm=parseInt($('label-w').value)||50,hm=parseInt($('label-h').value)||30;let dp=DPI203,mx=576;if(t==='niimbot'){const m=NIM_M[$('niimbot-model').value]||NIM_M.B1;dp=m.d;mx=m.mx;}let wp=Math.round(wm*dp);if(wp>mx)wp=mx;return{wp,hp:Math.round(hm*dp)};}
 
