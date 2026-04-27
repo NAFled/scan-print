@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>s-to-p</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script src="https://unpkg.com/@mmote/niimbluelib/dist/umd/niimbluelib.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
+:root{--bg-primary:#0c0e13;--bg-card:#1a1e27;--bg-input:#12151b;--border:#2a2f3a;--border-focus:#3d8bfd;--text-primary:#e8ecf1;--text-secondary:#8a92a1;--text-muted:#555d6e;--accent:#3d8bfd;--accent-dim:#2a6ad4;--green:#00d68f;--green-dim:rgba(0,214,143,.12);--red:#ff4757;--red-dim:rgba(255,71,87,.12);--orange:#ffa502;--orange-dim:rgba(255,165,2,.12);--mono:'JetBrains Mono','Fira Code',monospace;--sans:'DM Sans',-apple-system,sans-serif;--radius:10px;--radius-sm:6px}
+*{margin:0;padding:0;box-sizing:border-box}html,body{height:100%;background:var(--bg-primary);color:var(--text-primary);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden}
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:520px;margin:0 auto}.header{padding:16px 20px 0;flex-shrink:0}.header h1{font-family:var(--mono);font-size:18px;font-weight:700;letter-spacing:-.5px;display:flex;align-items:center;gap:10px}.header h1 .icon{font-size:22px}.header .badge{font-size:9px;font-weight:700;background:var(--accent);color:#fff;padding:2px 7px;border-radius:4px;text-transform:uppercase}
+.tab-bar{display:flex;gap:4px;padding:12px 20px 0;flex-shrink:0}.tab-btn{flex:1;padding:10px 0;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text-muted);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.8px}.tab-btn:hover{color:var(--text-secondary)}.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-content{flex:1;overflow-y:auto;overflow-x:hidden;padding:16px 20px 24px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}.tab-panel{display:none}.tab-panel.active{display:block}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px}.card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);margin-bottom:12px}
+.status-row{display:flex;align-items:center;gap:8px;margin-bottom:12px}.status-dot{width:10px;height:10px;border-radius:50%;background:var(--text-muted);flex-shrink:0}.status-dot.ok{background:var(--green);box-shadow:0 0 8px rgba(0,214,143,.4)}.status-dot.err{background:var(--red);box-shadow:0 0 8px rgba(255,71,87,.4)}.status-dot.warn{background:var(--orange);box-shadow:0 0 8px rgba(255,165,2,.4)}.status-label{font-size:13px;font-weight:500;color:var(--text-secondary)}
+.video-wrap{position:relative;width:100%;aspect-ratio:4/3;background:var(--bg-input);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:12px;border:1px solid var(--border)}.video-wrap video{width:100%;height:100%;object-fit:cover;display:block}.video-wrap .overlay-msg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-muted);font-size:14px;gap:8px}.video-wrap .overlay-msg .big-icon{font-size:40px;opacity:.5}.scan-line{position:absolute;left:10%;right:10%;height:2px;background:var(--accent);box-shadow:0 0 12px var(--accent);animation:scanMove 2.5s ease-in-out infinite;display:none}.scanning .scan-line{display:block}@keyframes scanMove{0%,100%{top:20%}50%{top:75%}}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border:none;border-radius:var(--radius-sm);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}.btn:active{transform:scale(.97)}.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:var(--accent-dim)}.btn-secondary{background:var(--bg-input);color:var(--text-secondary);border:1px solid var(--border)}.btn-secondary:hover{border-color:var(--text-muted);color:var(--text-primary)}.btn-danger{background:var(--red);color:#fff}.btn-sm{padding:6px 12px;font-size:12px}.btn-block{width:100%}.btn-row{display:flex;gap:8px}
+.form-group{margin-bottom:14px}.form-label{display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;letter-spacing:.3px}.form-input,.form-select{width:100%;padding:10px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-family:var(--mono);font-size:13px;outline:none;transition:border-color .2s}.form-input:focus,.form-select:focus{border-color:var(--border-focus)}.form-select{font-family:var(--sans);cursor:pointer}.form-select option{background:var(--bg-card)}.form-row{display:flex;gap:10px}.form-row>*{flex:1}
+.barcode-display{background:var(--bg-input);border:1px dashed var(--border);border-radius:var(--radius-sm);padding:14px;text-align:center;margin-bottom:12px;min-height:52px;display:flex;align-items:center;justify-content:center}.barcode-display .value{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--green);word-break:break-all}.barcode-display .empty{color:var(--text-muted);font-size:13px}.barcode-display .format-tag{font-size:10px;font-weight:700;color:var(--accent);background:rgba(61,139,253,.12);padding:2px 8px;border-radius:4px;margin-left:10px;text-transform:uppercase}
+.history-list{display:flex;flex-direction:column;gap:6px}.history-item,.log-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg-input);border-radius:var(--radius-sm);border:1px solid var(--border)}.history-item .code,.log-item .code{font-family:var(--mono);font-size:13px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.history-item .time,.log-item .time{font-size:11px;color:var(--text-muted);flex-shrink:0}.log-item .status-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;flex-shrink:0}.log-item .status-badge.ok{background:var(--green-dim);color:var(--green)}.log-item .status-badge.err{background:var(--red-dim);color:var(--red)}
+.reprint-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:none;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-muted);font-size:16px;cursor:pointer;flex-shrink:0;transition:all .15s}.reprint-btn:hover{border-color:var(--accent);color:var(--accent)}
+.method-selector{display:flex;gap:6px;margin-bottom:16px}.method-btn{flex:1;padding:10px 8px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-muted);font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;text-align:center;transition:all .2s}.method-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(61,139,253,.08)}.method-panel{display:none}.method-panel.active{display:block}
+.type-selector{display:flex;gap:6px;margin-bottom:16px}.type-btn{flex:1;padding:12px 8px;background:var(--bg-input);border:2px solid var(--border);border-radius:var(--radius);color:var(--text-muted);font-family:var(--sans);font-size:12px;font-weight:700;cursor:pointer;text-align:center;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:4px}.type-btn .type-icon{font-size:20px}.type-btn.active{border-color:var(--green);color:var(--green);background:var(--green-dim)}.type-panel{display:none}.type-panel.active{display:block}
+.zpl-preview{background:#fff;color:#000;border-radius:var(--radius-sm);padding:16px;font-family:var(--mono);font-size:11px;white-space:pre-wrap;word-break:break-all;max-height:180px;overflow-y:auto;margin-bottom:12px;border:1px solid var(--border)}
+.label-preview-wrap{background:#fff;border-radius:var(--radius-sm);padding:10px;margin-bottom:12px;border:1px solid var(--border);display:flex;justify-content:center}.label-preview-wrap canvas{max-width:100%;height:auto;image-rendering:pixelated}
+@keyframes flashGreen{0%{box-shadow:inset 0 0 0 2px var(--green)}100%{box-shadow:inset 0 0 0 0 transparent}}.flash-green{animation:flashGreen .6s ease-out}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-muted)}.empty-state .big-icon{font-size:36px;margin-bottom:10px;opacity:.4}.empty-state p{font-size:13px}
+.toast-container{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;flex-direction:column;gap:8px;pointer-events:none}.toast{padding:10px 20px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:var(--sans);animation:toastIn .3s ease-out;pointer-events:auto}.toast.ok{background:var(--green);color:#0c0e13}.toast.err{background:var(--red);color:#fff}.toast.info{background:var(--accent);color:#fff}@keyframes toastIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+.info-hint{font-size:11px;color:var(--text-muted);padding:8px 10px;background:rgba(61,139,253,.06);border-radius:var(--radius-sm);margin-bottom:12px;border-left:3px solid var(--accent)}
+.copies-quick{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:10px}.copies-btn{padding:10px 0;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-secondary);font-family:var(--mono);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;text-align:center}.copies-btn.active{border-color:var(--accent);background:rgba(61,139,253,.12);color:var(--accent)}.copies-btn:active{transform:scale(.95)}
+.ft-quick-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px}.ft-quick-btn{padding:12px 8px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}.ft-quick-btn:hover{border-color:var(--accent);color:var(--accent)}.ft-quick-btn:active{transform:scale(.98)}.ft-quick-btn.full{grid-column:1 / -1}
+.ft-textarea{width:100%;min-height:90px;padding:10px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-family:var(--mono);font-size:14px;outline:none;resize:vertical;line-height:1.4}.ft-textarea:focus{border-color:var(--border-focus)}
+.ft-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}.ft-toggle-row:last-child{border-bottom:none}.ft-toggle-row .lbl{font-size:13px;color:var(--text-secondary);font-weight:500}
+.ft-switch{position:relative;width:44px;height:24px;background:var(--bg-input);border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:all .2s;flex-shrink:0}.ft-switch::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;background:var(--text-muted);border-radius:50%;transition:all .2s}.ft-switch.on{background:var(--accent);border-color:var(--accent)}.ft-switch.on::after{left:22px;background:#fff}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header"><h1><span class="icon">⬡</span> s-to-p <span class="badge" style="background:var(--green)">v3.0</span></h1></div>
+  <div class="tab-bar"><button class="tab-btn active" data-tab="scanner">▦ Scanner</button><button class="tab-btn" data-tab="freetext">✎ Freitext</button><button class="tab-btn" data-tab="settings">⚙ Einstellungen</button><button class="tab-btn" data-tab="log">☰ Log</button></div>
+  <div class="tab-content">
+    <!-- SCANNER -->
+    <div class="tab-panel active" id="tab-scanner">
+      <div class="card">
+        <div class="status-row"><div class="status-dot" id="printer-dot"></div><span class="status-label" id="printer-status">Drucker nicht verbunden</span></div>
+        <div class="video-wrap" id="video-wrap"><video id="cam-video" autoplay playsinline muted></video><div class="scan-line"></div><div class="overlay-msg" id="cam-overlay"><span class="big-icon">📷</span><span>Kamera starten</span></div></div>
+        <div class="form-group"><label class="form-label">Kamera</label><select class="form-select" id="camera-select"><option value="">—</option></select></div>
+        <div class="btn-row"><button class="btn btn-primary btn-block" id="btn-start-scan">▶ Scan starten</button><button class="btn btn-secondary btn-block" id="btn-stop-scan" style="display:none">■ Stoppen</button></div>
+      </div>
+      <div class="card"><div class="card-title">Erkannter Barcode</div><div class="barcode-display" id="barcode-display"><span class="empty">Warte auf Scan…</span></div></div>
+      <div class="card"><div class="card-title">Manuelle Eingabe</div><div style="display:flex;gap:8px"><input type="text" class="form-input" id="manual-input" placeholder="Barcode eingeben…" style="flex:1"><button class="btn btn-primary" id="btn-manual-print">⎙</button></div></div>
+      <div class="card"><div class="card-title">Letzte Scans</div><div class="history-list" id="history-list"><div class="empty-state"><div class="big-icon">📋</div><p>Noch keine Scans</p></div></div></div>
+    </div>
+    <!-- FREITEXT -->
+    <div class="tab-panel" id="tab-freetext">
+      <div class="card">
+        <div class="status-row"><div class="status-dot" id="ft-printer-dot"></div><span class="status-label" id="ft-printer-status">Drucker nicht verbunden</span></div>
+        <div class="card-title" style="margin-top:4px">Schnelldruck</div>
+        <div class="ft-quick-row">
+          <button class="ft-quick-btn" id="ft-btn-date">📅 Datum</button>
+          <button class="ft-quick-btn" id="ft-btn-time">🕐 Uhrzeit</button>
+          <button class="ft-quick-btn full" id="ft-btn-combo">📅 Datum &amp; 🕐 Uhrzeit</button>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block" id="ft-btn-print-top" style="margin-bottom:14px">⎙ Drucken</button>
+      <div class="card">
+        <div class="card-title">Text</div>
+        <textarea class="ft-textarea" id="ft-textarea" placeholder="Text eingeben…&#10;Mehrere Zeilen mit Enter."></textarea>
+      </div>
+      <div class="card">
+        <div class="card-title">Layout</div>
+        <div class="ft-toggle-row"><span class="lbl">Zentrieren</span><div class="ft-switch on" id="ft-center-switch"></div></div>
+        <div class="ft-toggle-row"><span class="lbl">Auto-Umbruch</span><div class="ft-switch on" id="ft-wrap-switch"></div></div>
+        <div class="form-group" style="margin-top:14px;margin-bottom:0"><label class="form-label">Zeilenabstand: <span id="ft-ls-val">1.2</span></label><input type="range" id="ft-line-spacing" min="1.0" max="2.0" step="0.1" value="1.2" style="width:100%;accent-color:var(--accent);"></div>
+      </div>
+      <div class="card"><div class="card-title">Label-Größe (Freitext)</div><div class="form-row"><div class="form-group" style="margin-bottom:0"><label class="form-label">Breite (mm)</label><input type="number" class="form-input" id="ft-label-w" value="50" min="10" max="200"></div><div class="form-group" style="margin-bottom:0"><label class="form-label">Höhe (mm)</label><input type="number" class="form-input" id="ft-label-h" value="30" min="10" max="200"></div></div></div>
+      <div class="card"><div class="card-title">Kopien pro Druck</div>
+        <div class="copies-quick" id="ft-copies-quick">
+          <button class="copies-btn active" data-copies="1">1</button>
+          <button class="copies-btn" data-copies="2">2</button>
+          <button class="copies-btn" data-copies="5">5</button>
+          <button class="copies-btn" data-copies="10">10</button>
+          <button class="copies-btn" data-copies="20">20</button>
+          <button class="copies-btn" data-copies="50">50</button>
+          <button class="copies-btn" data-copies="100">100</button>
+        </div>
+        <div class="form-group" style="margin-bottom:0"><label class="form-label">Eigene Anzahl (1–999)</label><input type="number" class="form-input" id="ft-copies-input" min="1" max="999" value="1"></div>
+      </div>
+      <div class="card"><div class="card-title">Vorschau</div><div class="label-preview-wrap"><canvas id="ft-canvas"></canvas></div></div>
+      <button class="btn btn-primary btn-block" id="ft-btn-print-bottom">⎙ Drucken</button>
+    </div>
+    <!-- EINSTELLUNGEN -->
+    <div class="tab-panel" id="tab-settings">
+      <div class="card"><div class="card-title">Druckertyp</div><div class="type-selector"><button class="type-btn active" data-ptype="standard"><span class="type-icon">🖨</span> Standard</button><button class="type-btn" data-ptype="niimbot"><span class="type-icon">🏷</span> Niimbot</button></div></div>
+      <!-- Standard -->
+      <div class="type-panel active" id="tpanel-standard">
+        <div class="card">
+          <div class="card-title">Verbindung</div>
+          <div class="method-selector"><button class="method-btn active" data-method="http">🌐 Netzwerk</button><button class="method-btn" data-method="cups">🖨 CUPS</button><button class="method-btn" data-method="bt">📶 Bluetooth</button></div>
+          <div class="method-panel active" id="panel-http"><div class="form-group"><label class="form-label">Server-URL</label><input type="url" class="form-input" id="http-url" placeholder="http://192.168.1.100:9100"></div><div class="form-group"><label class="form-label">Pfad</label><input type="text" class="form-input" id="http-path" placeholder="/print"></div><div class="form-row"><div class="form-group"><label class="form-label">Benutzer</label><input type="text" class="form-input" id="http-user" placeholder="optional"></div><div class="form-group"><label class="form-label">Passwort</label><input type="password" class="form-input" id="http-pass" placeholder="optional"></div></div><button class="btn btn-secondary btn-block" id="btn-test-http">🔌 Testen</button></div>
+          <div class="method-panel" id="panel-cups"><div class="form-group"><label class="form-label">CUPS URL</label><input type="url" class="form-input" id="cups-url" value="http://localhost:631"></div><div class="form-row"><div class="form-group"><label class="form-label">Benutzer</label><input type="text" class="form-input" id="cups-user"></div><div class="form-group"><label class="form-label">Passwort</label><input type="password" class="form-input" id="cups-pass"></div></div><div class="form-group"><label class="form-label">Drucker</label><div style="display:flex;gap:8px"><select class="form-select" id="cups-printer" style="flex:1"><option>—</option></select><button class="btn btn-secondary" id="btn-load-cups">⟳</button></div></div></div>
+          <div class="method-panel" id="panel-bt"><div id="bt-device-name" style="font-family:var(--mono);font-size:13px;color:var(--text-muted);margin-bottom:10px">Nicht verbunden</div><button class="btn btn-primary btn-block" id="btn-bt-connect">📶 Verbinden</button><button class="btn btn-secondary btn-block" id="btn-bt-disconnect" style="display:none;margin-top:8px">✕ Trennen</button></div>
+        </div>
+        <div class="card"><div class="card-title">Druckersprache</div><select class="form-select" id="print-lang"><option value="zpl">ZPL</option><option value="epl">EPL</option><option value="tspl">TSPL</option><option value="escpos">ESC/POS</option><option value="raw">RAW</option></select></div>
+      </div>
+      <!-- Niimbot -->
+      <div class="type-panel" id="tpanel-niimbot">
+        <div class="card"><div class="card-title">Niimbot</div><div class="info-hint">Bluetooth-Druck basierend auf NiimBlue Open-Source.</div>
+          <div class="form-group"><label class="form-label">Modell</label><select class="form-select" id="niimbot-model"><option value="B1">B1 (203DPI)</option><option value="B1Pro">B1 Pro (300DPI)</option><option value="B21">B21</option><option value="B21Pro">B21 Pro</option><option value="D110">D110</option><option value="D11">D11</option><option value="B18">B18</option></select></div>
+          <div class="form-group"><label class="form-label">Dichte</label><select class="form-select" id="niimbot-density"><option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select></div>
+          <div id="niimbot-info" style="font-family:var(--mono);font-size:13px;color:var(--text-muted);margin-bottom:10px">Nicht verbunden</div>
+          <button class="btn btn-primary btn-block" id="btn-niimbot-connect">📶 Niimbot verbinden</button><button class="btn btn-secondary btn-block" id="btn-niimbot-dc" style="display:none;margin-top:8px">✕ Trennen</button>
+        </div>
+      </div>
+      <!-- Shared -->
+      <div class="card"><div class="card-title">Label-Größe</div><div class="form-row"><div class="form-group"><label class="form-label">Breite (mm)</label><input type="number" class="form-input" id="label-w" value="50" min="10" max="200"></div><div class="form-group"><label class="form-label">Höhe (mm)</label><input type="number" class="form-input" id="label-h" value="30" min="10" max="200"></div></div></div>
+      <div class="card"><div class="card-title">Ausgabe</div><div class="method-selector"><button class="method-btn active" data-output="qr">◫ QR-Code</button><button class="method-btn" data-output="1d">▥ Code128</button></div></div>
+      <div class="card"><div class="card-title">Druck-Layout</div>
+        <div class="form-group"><label class="form-label">Ausrichtung</label><div class="method-selector"><button class="method-btn active" data-orient="portrait" id="orient-portrait">↕ Hochformat</button><button class="method-btn" data-orient="landscape" id="orient-landscape">↔ Querformat</button></div></div>
+        <div class="form-group"><label class="form-label">Schriftgröße: <span id="fs-val">12</span>px</label><input type="range" id="font-size" min="6" max="40" value="12" style="width:100%;accent-color:var(--accent);"></div>
+        <div class="form-group"><label class="form-label">Textabstand zum Barcode: <span id="gap-val">2</span>px</label><input type="range" id="text-gap" min="0" max="30" value="2" style="width:100%;accent-color:var(--accent);"></div>
+      </div>
+      <div class="card"><div class="card-title">Kopien pro Druck</div>
+        <div class="copies-quick" id="copies-quick">
+          <button class="copies-btn active" data-copies="1">1</button>
+          <button class="copies-btn" data-copies="2">2</button>
+          <button class="copies-btn" data-copies="5">5</button>
+          <button class="copies-btn" data-copies="10">10</button>
+          <button class="copies-btn" data-copies="20">20</button>
+          <button class="copies-btn" data-copies="50">50</button>
+          <button class="copies-btn" data-copies="100">100</button>
+        </div>
+        <div class="form-group" style="margin-bottom:0"><label class="form-label">Eigene Anzahl (1–999)</label><input type="number" class="form-input" id="copies-input" min="1" max="999" value="1"></div>
+      </div>
+      <div class="card"><div class="card-title">Vorschau</div><div class="zpl-preview" id="zpl-preview"></div><div class="label-preview-wrap" id="canvas-wrap" style="display:none"><canvas id="label-canvas"></canvas></div><button class="btn btn-secondary btn-block" id="btn-test-print">⎙ Testdruck</button></div>
+    </div>
+    <!-- LOG -->
+    <div class="tab-panel" id="tab-log">
+      <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div class="card-title" style="margin-bottom:0">Druckprotokoll</div><div class="btn-row"><button class="btn btn-secondary btn-sm" id="btn-export-csv">⬇ CSV</button><button class="btn btn-danger btn-sm" id="btn-clear-log">✕ Löschen</button></div></div><div id="log-list"><div class="empty-state"><div class="big-icon">📄</div><p>Noch keine Druckaufträge</p></div></div></div>
+    </div>
+  </div>
+</div>
+<div class="toast-container" id="toast-container"></div>
+<canvas id="bc-canvas" style="display:none"></canvas>
+<script>
+(()=>{
+'use strict';
+const S={scanning:false,lastV:'',lastT:0,history:[],log:[],stream:null,detector:null,scanTimer:null,
+  btDev:null,btChar:null,btSrv:null,
+  nimClient:null,nimAbstraction:null};
+const DUPE=2500,MAXH=8,SAMPLE='A1-811-1-1-2-1',DPI203=8,DPI300=11.81;
+
+const BT_SVCS=['38eb4a80-c570-11e3-9507-0002a5d5c51b','000018f0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455','e7810a71-73ae-499d-8c15-faa9aef0c3f2','0000ff00-0000-1000-8000-00805f9b34fb','0000fff0-0000-1000-8000-00805f9b34fb','0000fee7-0000-1000-8000-00805f9b34fb','0000ae30-0000-1000-8000-00805f9b34fb','0000aaf0-0000-1000-8000-00805f9b34fb','00001101-0000-1000-8000-00805f9b34fb','0000feea-0000-1000-8000-00805f9b34fb','6e400001-b5a3-f393-e0a9-e50e24dcca9e','0000ffe0-0000-1000-8000-00805f9b34fb'];
+const NIM_M={B1:{mx:384,d:DPI203},B1Pro:{mx:384,d:DPI300},B21:{mx:384,d:DPI203},B21Pro:{mx:384,d:DPI300},D110:{mx:96,d:DPI203},D11:{mx:96,d:DPI203},B18:{mx:384,d:DPI203}};
+const $=id=>document.getElementById(id);const video=$('cam-video'),overlay=$('cam-overlay'),vw=$('video-wrap');
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function toast(m,t='info'){const e=document.createElement('div');e.className='toast '+t;e.textContent=m;$('toast-container').appendChild(e);setTimeout(()=>e.remove(),2800);}
+function pType(){return document.querySelector('.type-btn.active')?.dataset.ptype||'standard';}
+function getM(){return document.querySelector('.method-btn[data-method].active')?.dataset.method||'http';}
+function getO(){return document.querySelector('.method-btn[data-output].active')?.dataset.output||'qr';}
+function updStatus(t,m){$('printer-dot').className='status-dot '+t;$('printer-status').textContent=m;const ftd=$('ft-printer-dot'),fts=$('ft-printer-status');if(ftd)ftd.className='status-dot '+t;if(fts)fts.textContent=m;}
+
+// ═══ SETTINGS ═══
+const SK='scanprint_mobile_settings';
+function save(){localStorage.setItem(SK,JSON.stringify({pt:pType(),method:getM(),hu:$('http-url').value,hp:$('http-path').value,hus:$('http-user').value,hpw:$('http-pass').value,cu:$('cups-url').value,cus:$('cups-user').value,cpw:$('cups-pass').value,pl:$('print-lang').value,lw:$('label-w').value,lh:$('label-h').value,om:getO(),orient:getOrient(),tgap:$('text-gap').value,fsz:$('font-size').value,cp:getCopies(),nm:$('niimbot-model').value,nd:$('niimbot-density').value,ftlw:$('ft-label-w').value,ftlh:$('ft-label-h').value,ftcp:ftCopies(),ftc:ftCenter()?1:0,ftw:ftWrap()?1:0,ftls:$('ft-line-spacing').value,log:S.log,hist:S.history}));}
+function load(){try{const s=JSON.parse(localStorage.getItem(SK));if(!s)return;if(s.pt)selType(s.pt);if(s.method)selMethod(s.method);if(s.hu)$('http-url').value=s.hu;if(s.hp)$('http-path').value=s.hp;if(s.hus)$('http-user').value=s.hus;if(s.hpw)$('http-pass').value=s.hpw;if(s.cu)$('cups-url').value=s.cu;if(s.cus)$('cups-user').value=s.cus;if(s.cpw)$('cups-pass').value=s.cpw;if(s.pl)$('print-lang').value=s.pl;if(s.lw)$('label-w').value=s.lw;if(s.lh)$('label-h').value=s.lh;if(s.om)selOut(s.om);if(s.orient)selOrient(s.orient);if(s.tgap){$('text-gap').value=s.tgap;$('gap-val').textContent=s.tgap;}if(s.fsz){$('font-size').value=s.fsz;$('fs-val').textContent=s.fsz;}if(s.cp)setCopies(s.cp);if(s.nm)$('niimbot-model').value=s.nm;if(s.nd)$('niimbot-density').value=s.nd;if(s.ftlw)$('ft-label-w').value=s.ftlw;if(s.ftlh)$('ft-label-h').value=s.ftlh;if(s.ftcp)ftSetCopies(s.ftcp);if(s.ftc!=null)$('ft-center-switch').classList.toggle('on',!!s.ftc);if(s.ftw!=null)$('ft-wrap-switch').classList.toggle('on',!!s.ftw);if(s.ftls){$('ft-line-spacing').value=s.ftls;$('ft-ls-val').textContent=s.ftls;}if(s.log)S.log=s.log;if(s.hist)S.history=s.hist.slice(0,MAXH);}catch(e){}}
+
+// ═══ TABS/SELECTORS ═══
+document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');$('tab-'+b.dataset.tab).classList.add('active');}));
+function selType(t){document.querySelectorAll('.type-btn').forEach(b=>b.classList.toggle('active',b.dataset.ptype===t));document.querySelectorAll('.type-panel').forEach(p=>p.classList.remove('active'));const p=$('tpanel-'+t);if(p)p.classList.add('active');const std=t==='standard';$('zpl-preview').style.display=std?'':'none';$('canvas-wrap').style.display=std?'none':'';if(!std)updCanvas();else updZpl();}
+document.querySelectorAll('.type-btn').forEach(b=>b.addEventListener('click',()=>{selType(b.dataset.ptype);save();}));
+function selMethod(m){document.querySelectorAll('.method-btn[data-method]').forEach(b=>b.classList.toggle('active',b.dataset.method===m));document.querySelectorAll('.method-panel').forEach(p=>p.classList.remove('active'));const p=$('panel-'+m);if(p)p.classList.add('active');}
+document.querySelectorAll('.method-btn[data-method]').forEach(b=>b.addEventListener('click',()=>{selMethod(b.dataset.method);save();}));
+function selOut(m){document.querySelectorAll('.method-btn[data-output]').forEach(b=>b.classList.toggle('active',b.dataset.output===m));updPreview();}
+document.querySelectorAll('.method-btn[data-output]').forEach(b=>b.addEventListener('click',()=>{selOut(b.dataset.output);save();}));
+function getOrient(){return document.querySelector('.method-btn[data-orient].active')?.dataset.orient||'portrait';}
+function selOrient(o){document.querySelectorAll('.method-btn[data-orient]').forEach(b=>b.classList.toggle('active',b.dataset.orient===o));updPreview();}
+document.querySelectorAll('.method-btn[data-orient]').forEach(b=>b.addEventListener('click',()=>{selOrient(b.dataset.orient);save();}));
+function getTextGap(){return parseInt($('text-gap').value)||2;}
+$('text-gap').addEventListener('input',()=>{$('gap-val').textContent=$('text-gap').value;updPreview();});
+$('text-gap').addEventListener('change',save);
+function getFontSize(){return parseInt($('font-size').value)||12;}
+$('font-size').addEventListener('input',()=>{$('fs-val').textContent=$('font-size').value;updPreview();});
+$('font-size').addEventListener('change',save);
+
+// ═══ COPIES ═══
+function getCopies(){const v=parseInt($('copies-input').value);if(!v||v<1)return 1;if(v>999)return 999;return v;}
+function setCopies(n){n=Math.max(1,Math.min(999,parseInt(n)||1));$('copies-input').value=n;document.querySelectorAll('.copies-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.copies)===n));}
+document.querySelectorAll('.copies-btn').forEach(b=>b.addEventListener('click',()=>{setCopies(b.dataset.copies);save();}));
+$('copies-input').addEventListener('input',()=>{const n=getCopies();document.querySelectorAll('.copies-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.copies)===n));});
+$('copies-input').addEventListener('change',()=>{setCopies($('copies-input').value);save();});
+
+// ═══ CAMERA ═══
+async function enumCam(){try{const d=await navigator.mediaDevices.enumerateDevices();const c=d.filter(x=>x.kind==='videoinput');const s=$('camera-select');s.innerHTML='';c.forEach((x,i)=>{const o=document.createElement('option');o.value=x.deviceId;const l=x.label||('Kamera '+(i+1));o.textContent=l;if(/back|rear|rück|environment/i.test(l))o.selected=true;s.appendChild(o);});if(!s.value&&c.length)s.selectedIndex=c.length-1;}catch(e){}}
+function initDet(){if('BarcodeDetector'in window){S.detector=new BarcodeDetector({formats:['qr_code','ean_13','ean_8','code_128','code_39','code_93','data_matrix','upc_a','upc_e','codabar','itf','pdf417','aztec']});return true;}return false;}
+async function startScan(){if(S.scanning)return;const id=$('camera-select').value;try{S.stream=await navigator.mediaDevices.getUserMedia({video:id?{deviceId:{exact:id},facingMode:'environment'}:{facingMode:'environment'}});video.srcObject=S.stream;await video.play();overlay.style.display='none';vw.classList.add('scanning');S.scanning=true;$('btn-start-scan').style.display='none';$('btn-stop-scan').style.display='';await enumCam();scanLoop();}catch(e){toast('Kamera: '+e.message,'err');}}
+function stopScan(){S.scanning=false;if(S.stream){S.stream.getTracks().forEach(t=>t.stop());S.stream=null;}video.srcObject=null;overlay.style.display='';vw.classList.remove('scanning');$('btn-start-scan').style.display='';$('btn-stop-scan').style.display='none';if(S.scanTimer){cancelAnimationFrame(S.scanTimer);S.scanTimer=null;}}
+async function scanLoop(){if(!S.scanning||!S.detector)return;try{const b=await S.detector.detect(video);if(b.length)handleScan(b[0].rawValue,b[0].format);}catch(e){}S.scanTimer=requestAnimationFrame(()=>setTimeout(scanLoop,120));}
+function handleScan(v,f='unknown'){if(!v||!v.trim())return;v=v.trim();const n=Date.now();if(v===S.lastV&&(n-S.lastT)<DUPE)return;S.lastV=v;S.lastT=n;showBC(v,f);S.history.unshift({value:v,format:f,copies:getCopies(),time:new Date().toLocaleTimeString('de-DE')});if(S.history.length>MAXH)S.history.pop();renderHist();execPrint(v);save();}
+function showBC(v,f){const e=$('barcode-display');e.innerHTML=`<span class="value">${esc(v)}</span>`+(f&&f!=='unknown'?`<span class="format-tag">${f}</span>`:'');e.classList.remove('flash-green');void e.offsetWidth;e.classList.add('flash-green');}
+function renderHist(){const e=$('history-list');if(!S.history.length){e.innerHTML='<div class="empty-state"><div class="big-icon">📋</div><p>Noch keine Scans</p></div>';return;}e.innerHTML=S.history.map((h,i)=>{const cp='<span style="color:var(--accent);font-weight:700">'+(h.copies||1)+'×</span> ';return `<div class="history-item"><span class="code" title="${esc(h.value)}">${cp}${esc(h.value)}</span><span class="time">${h.time}</span><button class="reprint-btn" onclick="window._rp(${i})">↺</button></div>`;}).join('');}
+window._rp=i=>{if(S.history[i])execPrint(S.history[i].value,1);};window._rl=i=>{if(S.log[i])execPrint(S.log[i].value,1);};
+
+// ═══ LABEL IMAGE PIPELINE ═══
+function renderLabel(v,wp,hp){
+const orient=getOrient();
+const userGap=getTextGap();
+// In landscape: render content on swapped canvas, then rotate
+const isLand=orient==='landscape';
+const cw=isLand?hp:wp, ch=isLand?wp:hp;
+const tmp=document.createElement('canvas');tmp.width=cw;tmp.height=ch;
+const x=tmp.getContext('2d');
+x.fillStyle='#FFF';x.fillRect(0,0,cw,ch);x.fillStyle='#000';
+const mode=getO();
+const fs=getFontSize();
+const txtH=Math.round(fs*1.2);
+const gap=userGap;
+const margin=Math.round(Math.min(cw,ch)*.03);
+
+if(mode==='qr'){
+  try{
+    const q=qrcode(0,'M');q.addData(v);q.make();
+    const m=q.getModuleCount();
+    const maxW=cw-margin*2;
+    const maxH=ch-margin*2-txtH-gap;
+    const maxSz=Math.min(maxW,maxH);
+    const cs=Math.floor(maxSz/m);
+    const sz=cs*m;
+    const totalH=sz+gap+txtH;
+    const startY=Math.round((ch-totalH)/2);
+    const startX=Math.round((cw-sz)/2);
+    for(let r=0;r<m;r++)for(let c2=0;c2<m;c2++)if(q.isDark(r,c2))x.fillRect(startX+c2*cs,startY+r*cs,cs,cs);
+    x.font=`${fs}px monospace`;x.textAlign='center';x.textBaseline='top';
+    x.fillText(v,cw/2,startY+sz+gap,cw-margin*2);
+  }catch(e){x.font=`bold ${Math.round(ch*.08)}px monospace`;x.textAlign='center';x.textBaseline='middle';x.fillText('QR Err',cw/2,ch/2);}
+} else {
+  try{
+    const maxW=cw-margin*2;
+    const bcH=ch-margin*2-txtH-gap;
+    // Render barcode to a temp canvas directly (avoids SVG parsing issues)
+    const bcCanvas=document.createElement('canvas');
+    JsBarcode(bcCanvas,v,{format:'CODE128',width:2,height:bcH,displayValue:false,margin:0,background:'#FFFFFF',lineColor:'#000000'});
+    // Scale to fit label width
+    const bcW=bcCanvas.width;
+    const bcHReal=bcCanvas.height;
+    const scale=Math.min(maxW/bcW, bcH/bcHReal);
+    const drawW=Math.round(bcW*scale);
+    const drawH=Math.round(bcHReal*scale);
+    const totalH=drawH+gap+txtH;
+    const startY=Math.round((ch-totalH)/2);
+    const startX=Math.round((cw-drawW)/2);
+    x.drawImage(bcCanvas,startX,startY,drawW,drawH);
+    x.font=`${fs}px monospace`;x.textAlign='center';x.textBaseline='top';
+    x.fillText(v,cw/2,startY+drawH+gap,maxW);
+  }catch(e){x.font=`bold ${Math.round(ch*.08)}px monospace`;x.textAlign='center';x.textBaseline='middle';x.fillText('BC Err',cw/2,ch/2);}
+}
+// Landscape: return canvas with swapped dims (rotation handled by printer/library)
+return tmp;}
+function to1Bit(cv){const x=cv.getContext('2d'),d=x.getImageData(0,0,cv.width,cv.height).data,w=cv.width,h=cv.height,bpl=Math.ceil(w/8),r=new Uint8Array(bpl*h);for(let y=0;y<h;y++)for(let x2=0;x2<w;x2++){const i=(y*w+x2)*4,g=d[i]*.299+d[i+1]*.587+d[i+2]*.114;if(g<128)r[y*bpl+Math.floor(x2/8)]|=(1<<(7-(x2%8)));}return{data:r,w,h,bpl};}
+function labelPx(){const t=pType(),wm=parseInt($('label-w').value)||50,hm=parseInt($('label-h').value)||30;let dp=DPI203,mx=576;if(t==='niimbot'){const m=NIM_M[$('niimbot-model').value]||NIM_M.B1;dp=m.d;mx=m.mx;}let wp=Math.round(wm*dp);if(wp>mx)wp=mx;return{wp,hp:Math.round(hm*dp)};}
+
+// ═══ BT GENERIC (FIXED) ═══
+async function findChar(srv){for(const u of BT_SVCS){try{const svc=await srv.getPrimaryService(u);const ch=await svc.getCharacteristics();for(const c of ch)if(c.properties.writeWithoutResponse||c.properties.write)return c;}catch(e){}}try{const ss=await srv.getPrimaryServices();for(const svc of ss){try{const ch=await svc.getCharacteristics();for(const c of ch)if(c.properties.writeWithoutResponse||c.properties.write)return c;}catch(e){}}}catch(e){}return null;}
+async function connectBT(){if(!navigator.bluetooth){toast('Kein Web Bluetooth','err');return;}try{const d=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:BT_SVCS});await attachBT(d);}catch(e){if(e.name!=='NotFoundError')toast('BT: '+e.message,'err');}}
+async function attachBT(d){S.btDev=d;$('bt-device-name').textContent='⏳ '+(d.name||d.id);$('bt-device-name').style.color='var(--orange)';d.addEventListener('gattserverdisconnected',btDC);const srv=await d.gatt.connect();S.btSrv=srv;const ch=await findChar(srv);if(!ch){toast('Keine druckfähige BLE-Eigenschaft','err');$('bt-device-name').textContent='✗ Nicht kompatibel';$('bt-device-name').style.color='var(--red)';return;}S.btChar=ch;$('bt-device-name').textContent='✓ '+(d.name||d.id);$('bt-device-name').style.color='var(--green)';$('btn-bt-connect').style.display='none';$('btn-bt-disconnect').style.display='';toast('BT verbunden!','ok');updStatus('ok','BT: '+(d.name||d.id));}
+function dcBT(){if(S.btDev?.gatt.connected)S.btDev.gatt.disconnect();btDC();}
+function btDC(){S.btChar=null;S.btSrv=null;$('bt-device-name').textContent='Nicht verbunden';$('bt-device-name').style.color='var(--text-muted)';$('btn-bt-connect').style.display='';$('btn-bt-disconnect').style.display='none';updStatus('warn','BT getrennt');}
+async function autoReconnect(){if(!navigator.bluetooth?.getDevices)return;try{const devs=await navigator.bluetooth.getDevices();for(const d of devs){if(!d.gatt)continue;try{const ac=new AbortController();const to=setTimeout(()=>ac.abort(),4000);await new Promise((res,rej)=>{d.addEventListener('advertisementreceived',async()=>{clearTimeout(to);try{await attachBT(d);res();}catch(e){rej(e);}},{once:true});d.watchAdvertisements({signal:ac.signal}).catch(()=>{clearTimeout(to);rej(new Error('to'));});ac.signal.addEventListener('abort',()=>rej(new Error('to')));});return;}catch(e){}}}catch(e){}}
+async function bleChunk(ch,data,sz=512){for(let i=0;i<data.length;i+=sz){const c=data.slice(i,Math.min(i+sz,data.length));if(ch.properties.writeWithoutResponse)await ch.writeValueWithoutResponse(c);else await ch.writeValueWithResponse(c);if(data.length>sz)await sleep(20);}}
+
+// ═══ NIIMBOT (via niimbluelib – verified from source) ═══
+// PrintTaskName must be one of: "D11_V1", "D110", "B1", "B21_V1", "D110M_V4"
+const NIM_TASK_NAME={
+  B1:'B1', B1Pro:'B1',
+  B21:'B21_V1', B21Pro:'B21_V1',
+  D110:'D110', D11:'D11_V1',
+  B18:'B21_V1'
+};
+async function connectNim(){
+  if(typeof niimbluelib==='undefined'){toast('niimbluelib nicht geladen','err');return;}
+  if(!navigator.bluetooth){toast('Kein Web Bluetooth','err');return;}
+  try{
+    S.nimClient=new niimbluelib.NiimbotBluetoothClient();
+    $('niimbot-info').textContent='⏳ Suche…';
+    $('niimbot-info').style.color='var(--orange)';
+    updStatus('warn','Verbinde Niimbot…');
+    await S.nimClient.connect();
+    S.nimAbstraction=new niimbluelib.Abstraction(S.nimClient);
+    $('niimbot-info').textContent='✓ Verbunden';
+    $('niimbot-info').style.color='var(--green)';
+    $('btn-niimbot-connect').style.display='none';
+    $('btn-niimbot-dc').style.display='';
+    updStatus('ok','Niimbot verbunden');
+    toast('Niimbot verbunden!','ok');
+  }catch(e){
+    if(e.name!=='NotFoundError')toast('Niimbot: '+e.message,'err');
+    $('niimbot-info').textContent='Nicht verbunden';
+    $('niimbot-info').style.color='var(--text-muted)';
+    updStatus('err','Niimbot Fehler');
+    S.nimClient=null;S.nimAbstraction=null;
+  }
+}
+function dcNim(){
+  if(S.nimClient)try{S.nimClient.disconnect();}catch(e){}
+  nimDC();
+}
+function nimDC(){
+  S.nimClient=null;S.nimAbstraction=null;
+  $('niimbot-info').textContent='Nicht verbunden';
+  $('niimbot-info').style.color='var(--text-muted)';
+  $('btn-niimbot-connect').style.display='';
+  $('btn-niimbot-dc').style.display='none';
+}
+async function printNim(v,copies=1){
+  if(!S.nimClient||!S.nimClient.isConnected())throw new Error('Niimbot nicht verbunden');
+  if(!S.nimAbstraction)throw new Error('Niimbot Abstraction fehlt');
+  copies=Math.max(1,Math.min(999,parseInt(copies)||1));
+  const{wp,hp}=labelPx();
+  const cv=renderLabel(v,wp,hp);
+  const model=$('niimbot-model').value;
+  const density=parseInt($('niimbot-density').value)||3;
+  const printDir=(model==='D110'||model==='D11')?'left':(getOrient()==='landscape'?'left':'top');
+  const taskName=NIM_TASK_NAME[model]||'B1';
+  // 1. Encode image
+  const encoded=niimbluelib.ImageEncoder.encodeCanvas(cv,printDir);
+  // 2. Create print task via abstraction.newPrintTask
+  // totalPages = sum of page quantities (= copies for single page)
+  const task=S.nimAbstraction.newPrintTask(taskName,{
+    totalPages:copies,
+    density:density,
+    labelType:1
+  });
+  // 3. Execute print sequence
+  // printPage(image, quantity) - second param is copies count, native protocol support
+  try{
+    await task.printInit();
+    await task.printPage(encoded,copies);
+    await task.waitForPageFinished(copies>1?60000:30000);
+    await task.waitForFinished();
+  }finally{
+    await S.nimAbstraction.printEnd();
+  }
+}
+
+// ═══ STD PRINT CMDS ═══
+function genPrint(v,copies=1){
+const l=$('print-lang').value,m=getO(),w=parseInt($('label-w').value)||50,h=parseInt($('label-h').value)||30;
+const isLand=getOrient()==='landscape';
+const dw=(isLand?h:w)*8, dh=(isLand?w:h)*8;
+const rot=isLand?'\n^FWR':'';
+const userGap=getTextGap();
+const cp=Math.max(1,Math.min(999,parseInt(copies)||1));
+if(l==='zpl'){
+  const fontH=getFontSize();
+  const gap=userGap>0?userGap:Math.max(4,Math.round(dh*.01));
+  const margin=Math.round(dw*.03);
+  // ZPL ^PQ<quantity>: native multi-copy support
+  const pq=cp>1?`\n^PQ${cp}`:'';
+  if(m==='qr'){
+    const estMod=21;
+    const maxSz=Math.min(dw-margin*2, dh-margin*2-fontH-gap);
+    const mag=Math.max(1,Math.min(10,Math.floor(maxSz/estMod)));
+    const qrSz=mag*estMod;
+    const qrX=Math.round((dw-qrSz)/2);
+    const totalH=qrSz+gap+fontH;
+    const qrY=Math.round((dh-totalH)/2);
+    const txtY=qrY+qrSz+gap;
+    return `^XA${rot}\n^PW${isLand?h*8:w*8}\n^LL${isLand?w*8:h*8}\n^FO${qrX},${qrY}\n^BQN,2,${mag}\n^FDQA,${v}^FS\n^FO0,${txtY}\n^FB${dw},1,0,C,0\n^A0N,${fontH},${fontH}\n^FD${v}^FS${pq}\n^XZ`;
+  } else {
+    const bcH=Math.max(40,dh-margin*2-fontH-gap);
+    const totalH=bcH+gap+fontH;
+    const bcY=Math.round((dh-totalH)/2);
+    const txtY=bcY+bcH+gap;
+    const barW=Math.max(1,Math.min(4,Math.floor((dw-margin*2)/120)));
+    return `^XA${rot}\n^PW${isLand?h*8:w*8}\n^LL${isLand?w*8:h*8}\n^FO${margin},${bcY}\n^FB${dw-margin*2},1,0,C,0\n^BY${barW}\n^BCN,${bcH},N,N,N\n^FD${v}^FS\n^FO0,${txtY}\n^FB${dw},1,0,C,0\n^A0N,${fontH},${fontH}\n^FD${v}^FS${pq}\n^XZ`;
+  }
+}
+if(l==='epl'){
+  const fontH=getFontSize();const gap=userGap>0?userGap:Math.round(dh*.01);const availH=dh-fontH-gap-Math.round(dh*.06);
+  // EPL P<n>: native multi-copy support
+  if(m==='qr'){const mag=Math.max(1,Math.min(10,Math.floor(Math.min(dw,availH)/21)));const sz=mag*21;const ox=Math.round((dw-sz)/2);const oy=Math.round((dh-sz-gap-fontH)/2);return `\nN\nq${dw}\nQ${dh},24\nb${ox},${oy},Q,s${mag},"${v}"\nA${Math.round((dw-v.length*12)/2)},${oy+sz+gap},0,3,1,1,N,"${v}"\nP${cp}\n`;}
+  else{const bcH=Math.max(40,availH);const oy=Math.round((dh-bcH-gap-fontH)/2);return `\nN\nq${dw}\nQ${dh},24\nB${Math.round(dw*.05)},${oy},0,1,2,4,${bcH},N,"${v}"\nA${Math.round((dw-v.length*12)/2)},${oy+bcH+gap},0,3,1,1,N,"${v}"\nP${cp}\n`;}
+}
+if(l==='tspl'){
+  const d=8,pw=(isLand?h:w)*d,ph=(isLand?w:h)*d,fontH=getFontSize(),gap=userGap>0?userGap:Math.round(ph*.01),availH=ph-fontH-gap-Math.round(ph*.06);
+  // TSPL PRINT m,n: m=sets, n=copies per set → use n=cp
+  if(m==='qr'){const mag=Math.max(1,Math.min(10,Math.floor(Math.min(pw,availH)/21)));const sz=mag*21;const ox=Math.round((pw-sz)/2);const oy=Math.round((ph-sz-gap-fontH)/2);return `SIZE ${w} mm, ${h} mm\nGAP 2 mm, 0 mm\n${isLand?'DIRECTION 1\n':''}CLS\nQRCODE ${ox},${oy},L,${mag},A,0,"${v}"\nTEXT ${Math.round(pw/2)},${oy+sz+gap},"3",0,1,1,1,"${v}"\nPRINT 1,${cp}\n`;}
+  else{const bcH=Math.max(40,availH);const oy=Math.round((ph-bcH-gap-fontH)/2);return `SIZE ${w} mm, ${h} mm\nGAP 2 mm, 0 mm\n${isLand?'DIRECTION 1\n':''}CLS\nBARCODE ${Math.round(pw*.05)},${oy},"128",${bcH},1,0,2,2,"${v}"\nTEXT ${Math.round(pw/2)},${oy+bcH+gap},"3",0,1,1,1,"${v}"\nPRINT 1,${cp}\n`;}
+}
+if(l==='escpos'){const E='\x1B',G='\x1D';let c=E+'@'+E+'a\x01';if(m==='qr'){const n=v.length+3;const sz=Math.max(3,Math.min(12,Math.floor((w*8)/21)));c+=G+'(k\x04\x001A2\x00'+G+'(k\x03\x001C'+String.fromCharCode(sz)+G+'(k\x03\x001E\x31'+G+'(k'+String.fromCharCode(n&0xFF,(n>>8)&0xFF)+'1P0'+v+G+'(k\x03\x001Q0';}else{const bcH=Math.max(40,Math.round(h*8*.6));c+=G+'h'+String.fromCharCode(bcH)+G+'w\x02'+G+'H\x02'+G+'k\x49'+String.fromCharCode(v.length)+v;}return c+'\n'+v+'\n'+G+'V\x41\x03';}
+return v;}
+
+// ═══ PRINT DISPATCH ═══
+async function execPrint(v,forceCopies){const t=pType();const copies=(forceCopies!=null)?Math.max(1,Math.min(999,parseInt(forceCopies)||1)):getCopies();if(copies>=10&&!confirm('Wirklich '+copies+' Kopien drucken?'))return;let st='OK',err='';try{if(t==='niimbot')await printNim(v,copies);else{const m=getM(),lang=$('print-lang').value;const usesLoop=(lang==='escpos'||lang==='raw');if(usesLoop){const d=genPrint(v,1);for(let i=0;i<copies;i++){if(m==='http')await printHTTP(d);else if(m==='cups')await printCUPS(d);else if(m==='bt')await printStdBT(d);if(copies>1&&i<copies-1)await sleep(150);}}else{const d=genPrint(v,copies);if(m==='http')await printHTTP(d);else if(m==='cups')await printCUPS(d);else if(m==='bt')await printStdBT(d);}}}catch(e){st='ERR';err=e.message||'Fehler';}const cs=copies>1?' ×'+copies:'';S.log.unshift({id:Date.now(),value:v,status:st,error:err,copies:copies,time:new Date().toLocaleString('de-DE')});renderLog();updStatus(st==='OK'?'ok':'err',st==='OK'?'Gedruckt'+cs:'Fehler: '+err);toast(st==='OK'?'Gedruckt'+cs+': '+v:'Fehler: '+err,st==='OK'?'ok':'err');save();}
+async function printHTTP(d){let u=$('http-url').value.trim();if(!u)throw new Error('Keine URL');const p=$('http-path').value.trim();if(p)u=u.replace(/\/$/,'')+p;const h={'Content-Type':'application/octet-stream'};const us=$('http-user').value,pw=$('http-pass').value;if(us)h['Authorization']='Basic '+btoa(us+':'+pw);const r=await fetch(u,{method:'POST',headers:h,body:d,mode:'cors'});if(!r.ok)throw new Error('HTTP '+r.status);}
+async function printCUPS(d){const b=$('cups-url').value.trim()||'http://localhost:631',pr=$('cups-printer').value;if(!pr)throw new Error('Kein Drucker');const h={'Content-Type':'application/octet-stream'};const u=$('cups-user').value,p=$('cups-pass').value;if(u)h['Authorization']='Basic '+btoa(u+':'+p);const r=await fetch(b.replace(/\/$/,'')+'/printers/'+pr,{method:'POST',headers:h,body:d});if(!r.ok)throw new Error('CUPS '+r.status);}
+async function printStdBT(d){if(!S.btChar)throw new Error('Kein BT-Drucker');await bleChunk(S.btChar,new TextEncoder().encode(d));}
+async function loadCups(){const b=$('cups-url').value.trim()||'http://localhost:631';try{const h={};const u=$('cups-user').value,p=$('cups-pass').value;if(u)h['Authorization']='Basic '+btoa(u+':'+p);const r=await fetch(b+'/printers',{headers:h});const t=await r.text();const n=[...new Set([...t.matchAll(/\/printers\/([^"<>\s]+)/g)].map(m=>m[1]))];$('cups-printer').innerHTML=n.length?n.map(x=>`<option value="${x}">${x}</option>`).join(''):'<option>—</option>';toast(n.length?n.length+' Drucker':'Keine',n.length?'ok':'err');}catch(e){toast('CUPS: '+e.message,'err');}}
+async function testHTTP(){const u=$('http-url').value.trim();if(!u){toast('URL fehlt','err');return;}try{const h={};const us=$('http-user').value,pw=$('http-pass').value;if(us)h['Authorization']='Basic '+btoa(us+':'+pw);const r=await fetch(u+($('http-path').value||''),{method:'HEAD',headers:h,mode:'cors'});toast('OK ('+r.status+')','ok');updStatus('ok','HTTP ok');}catch(e){toast(e.message,'err');updStatus('err','HTTP Fehler');}}
+
+// ═══ LOG ═══
+function renderLog(){const e=$('log-list');if(!S.log.length){e.innerHTML='<div class="empty-state"><div class="big-icon">📄</div><p>Leer</p></div>';return;}e.innerHTML='<div class="history-list">'+S.log.map((l,i)=>{const cp='<span style="color:var(--accent);font-weight:700">'+(l.copies||1)+'×</span> ';return `<div class="log-item"><span class="status-badge ${l.status==='OK'?'ok':'err'}">${l.status}</span><span class="code" title="${esc(l.value)}">${cp}${esc(l.value)}</span><span class="time">${l.time}</span><button class="reprint-btn" onclick="window._rl(${i})">↺</button></div>`;}).join('')+'</div>';}
+function exportCSV(){if(!S.log.length){toast('Leer','err');return;}const r='Barcode;Status;Kopien;Fehler;Zeit\n'+S.log.map(l=>`"${l.value}";"${l.status}";"${l.copies||1}";"${l.error||''}";"${l.time}"`).join('\n');const b=new Blob(['\uFEFF'+r],{type:'text/csv;charset=utf-8;'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='drucklog_'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(a.href);toast('CSV exportiert','ok');}
+function clearLog(){if(!S.log.length)return;if(!confirm('Log löschen?'))return;S.log=[];renderLog();save();toast('Gelöscht','info');}
+
+// ═══ PREVIEW ═══
+function updPreview(){if(pType()==='standard'){$('zpl-preview').style.display='';$('canvas-wrap').style.display='none';updZpl();}else{$('zpl-preview').style.display='none';$('canvas-wrap').style.display='';updCanvas();}}
+function updZpl(){$('zpl-preview').textContent=genPrint(SAMPLE);}
+function updCanvas(){const{wp,hp}=labelPx();const cv=renderLabel(SAMPLE,wp,hp);const dc=$('label-canvas');dc.width=cv.width;dc.height=cv.height;dc.getContext('2d').drawImage(cv,0,0);}
+
+// ═══ FREITEXT ═══
+function ftDate(){return new Date().toLocaleDateString('de-DE');}
+function ftTime(){return new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});}
+function ftDateTime(){return ftDate()+'\n-\n'+ftTime();}
+function ftInsert(s){const ta=$('ft-textarea');const a=ta.selectionStart,b=ta.selectionEnd;const pre=ta.value.substring(0,a),post=ta.value.substring(b);ta.value=pre+s+post;ta.selectionStart=ta.selectionEnd=a+s.length;ta.focus();updFtPreview();}
+function ftCenter(){return $('ft-center-switch').classList.contains('on');}
+function ftWrap(){return $('ft-wrap-switch').classList.contains('on');}
+function ftLineSpacing(){return parseFloat($('ft-line-spacing').value)||1.2;}
+function ftCopies(){const v=parseInt($('ft-copies-input').value);if(!v||v<1)return 1;if(v>999)return 999;return v;}
+function ftSetCopies(n){n=Math.max(1,Math.min(999,parseInt(n)||1));$('ft-copies-input').value=n;document.querySelectorAll('#ft-copies-quick .copies-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.copies)===n));}
+function ftLabelPx(){const t=pType(),wm=parseInt($('ft-label-w').value)||50,hm=parseInt($('ft-label-h').value)||30;let dp=DPI203,mx=576;if(t==='niimbot'){const m=NIM_M[$('niimbot-model').value]||NIM_M.B1;dp=m.d;mx=m.mx;}let wp=Math.round(wm*dp);if(wp>mx)wp=mx;return{wp,hp:Math.round(hm*dp)};}
+function ftWrapText(ctx,text,maxW){const lines=[];const manual=text.split('\n');for(const line of manual){if(line===''){lines.push('');continue;}if(!ftWrap()){lines.push(line);continue;}if(ctx.measureText(line).width<=maxW){lines.push(line);continue;}const words=line.split(' ');let cur='';for(const w of words){const test=cur?cur+' '+w:w;if(ctx.measureText(test).width<=maxW){cur=test;}else{if(cur)lines.push(cur);if(ctx.measureText(w).width>maxW){let chunk='';for(const ch of w){const t2=chunk+ch;if(ctx.measureText(t2).width<=maxW)chunk=t2;else{if(chunk)lines.push(chunk);chunk=ch;}}cur=chunk;}else{cur=w;}}}if(cur)lines.push(cur);}return lines;}
+function ftRender(text,wp,hp){const cv=document.createElement('canvas');cv.width=wp;cv.height=hp;const x=cv.getContext('2d');x.fillStyle='#FFF';x.fillRect(0,0,wp,hp);x.fillStyle='#000';if(!text||!text.trim())return cv;const margin=Math.round(Math.min(wp,hp)*.05);const maxW=wp-margin*2,maxH=hp-margin*2;const ls=ftLineSpacing();let fs=Math.min(maxH,400),wrapped=[];while(fs>4){x.font=fs+'px sans-serif';wrapped=ftWrapText(x,text,maxW);const totalH=wrapped.length*fs*ls-(fs*(ls-1));const maxLineW=Math.max(...wrapped.map(l=>x.measureText(l).width),0);if(maxLineW<=maxW&&totalH<=maxH)break;fs-=1;}x.textBaseline='top';const center=ftCenter();x.textAlign=center?'center':'left';const lineH=fs*ls;const totalH=wrapped.length*fs*ls-(fs*(ls-1));const startY=Math.round((hp-totalH)/2);for(let i=0;i<wrapped.length;i++){const xx=center?wp/2:margin;const yy=startY+i*lineH;x.fillText(wrapped[i],xx,yy);}return cv;}
+function updFtPreview(){const{wp,hp}=ftLabelPx();const cv=ftRender($('ft-textarea').value,wp,hp);const dc=$('ft-canvas');dc.width=cv.width;dc.height=cv.height;dc.getContext('2d').drawImage(cv,0,0);}
+function canvasToZplGfa(cv){const{data,bpl}=to1Bit(cv);const total=data.length;let hex='';for(let i=0;i<total;i++)hex+=data[i].toString(16).padStart(2,'0').toUpperCase();return{gfa:`^GFA,${total},${total},${bpl},${hex}`,total,bpl};}
+async function printNimCanvas(cv,copies){if(!S.nimClient||!S.nimClient.isConnected())throw new Error('Niimbot nicht verbunden');if(!S.nimAbstraction)throw new Error('Niimbot Abstraction fehlt');copies=Math.max(1,Math.min(999,parseInt(copies)||1));const model=$('niimbot-model').value;const density=parseInt($('niimbot-density').value)||3;const printDir=(model==='D110'||model==='D11')?'left':'top';const taskName=NIM_TASK_NAME[model]||'B1';const encoded=niimbluelib.ImageEncoder.encodeCanvas(cv,printDir);const task=S.nimAbstraction.newPrintTask(taskName,{totalPages:copies,density:density,labelType:1});try{await task.printInit();await task.printPage(encoded,copies);await task.waitForPageFinished(copies>1?60000:30000);await task.waitForFinished();}finally{await S.nimAbstraction.printEnd();}}
+async function printZplBitmap(cv,copies){const w=parseInt($('ft-label-w').value)||50,h=parseInt($('ft-label-h').value)||30;const{gfa}=canvasToZplGfa(cv);const pq=copies>1?`\n^PQ${copies}`:'';const zpl=`^XA\n^PW${w*8}\n^LL${h*8}\n^FO0,0\n${gfa}\n^FS${pq}\n^XZ`;const m=getM();if(m==='http')await printHTTP(zpl);else if(m==='cups')await printCUPS(zpl);else if(m==='bt')await printStdBT(zpl);}
+async function ftPrint(){const text=$('ft-textarea').value;if(!text||!text.trim()){toast('Kein Text','err');return;}const t=pType(),copies=ftCopies();if(copies>=10&&!confirm('Wirklich '+copies+' Kopien drucken?'))return;let st='OK',err='';if(t==='standard'){const lang=$('print-lang').value;if(lang!=='zpl'){toast('Freitext: nur Niimbot oder ZPL','err');return;}}const{wp,hp}=ftLabelPx();const cv=ftRender(text,wp,hp);try{if(t==='niimbot')await printNimCanvas(cv,copies);else await printZplBitmap(cv,copies);}catch(e){st='ERR';err=e.message||'Fehler';}const cs=copies>1?' ×'+copies:'';const logV='[FT] '+text.replace(/\n/g,' ⏎ ').slice(0,80);S.log.unshift({id:Date.now(),value:logV,status:st,error:err,copies:copies,time:new Date().toLocaleString('de-DE')});renderLog();updStatus(st==='OK'?'ok':'err',st==='OK'?'Gedruckt'+cs:'Fehler: '+err);toast(st==='OK'?'Gedruckt'+cs:'Fehler: '+err,st==='OK'?'ok':'err');save();}
+
+// ═══ EVENTS ═══
+$('btn-start-scan').addEventListener('click',startScan);$('btn-stop-scan').addEventListener('click',stopScan);
+$('btn-manual-print').addEventListener('click',()=>{const v=$('manual-input').value.trim();if(v){handleScan(v,'manual');$('manual-input').value='';}});
+$('manual-input').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('btn-manual-print').click();}});
+$('btn-test-http').addEventListener('click',testHTTP);$('btn-load-cups').addEventListener('click',loadCups);
+$('btn-bt-connect').addEventListener('click',connectBT);$('btn-bt-disconnect').addEventListener('click',dcBT);
+$('btn-niimbot-connect').addEventListener('click',connectNim);$('btn-niimbot-dc').addEventListener('click',dcNim);
+$('btn-test-print').addEventListener('click',()=>execPrint(SAMPLE));$('btn-export-csv').addEventListener('click',exportCSV);$('btn-clear-log').addEventListener('click',clearLog);
+$('camera-select').addEventListener('change',()=>{if(S.scanning){stopScan();startScan();}});
+['print-lang','label-w','label-h','niimbot-model','niimbot-density'].forEach(id=>{$(id).addEventListener('change',()=>{updPreview();save();});$(id).addEventListener('input',()=>{updPreview();save();});});
+['http-url','http-path','http-user','http-pass','cups-url','cups-user','cups-pass'].forEach(id=>$(id).addEventListener('change',save));
+
+// Freitext-Events
+$('ft-btn-date').addEventListener('click',()=>ftInsert(ftDate()));
+$('ft-btn-time').addEventListener('click',()=>ftInsert(ftTime()));
+$('ft-btn-combo').addEventListener('click',()=>ftInsert(ftDateTime()));
+$('ft-textarea').addEventListener('input',updFtPreview);
+$('ft-center-switch').addEventListener('click',()=>{$('ft-center-switch').classList.toggle('on');updFtPreview();save();});
+$('ft-wrap-switch').addEventListener('click',()=>{$('ft-wrap-switch').classList.toggle('on');updFtPreview();save();});
+$('ft-line-spacing').addEventListener('input',()=>{$('ft-ls-val').textContent=$('ft-line-spacing').value;updFtPreview();});
+$('ft-line-spacing').addEventListener('change',save);
+['ft-label-w','ft-label-h'].forEach(id=>{$(id).addEventListener('input',updFtPreview);$(id).addEventListener('change',save);});
+document.querySelectorAll('#ft-copies-quick .copies-btn').forEach(b=>b.addEventListener('click',()=>{ftSetCopies(b.dataset.copies);save();}));
+$('ft-copies-input').addEventListener('input',()=>{const n=ftCopies();document.querySelectorAll('#ft-copies-quick .copies-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.copies)===n));});
+$('ft-copies-input').addEventListener('change',()=>{ftSetCopies($('ft-copies-input').value);save();});
+$('ft-btn-print-top').addEventListener('click',ftPrint);
+$('ft-btn-print-bottom').addEventListener('click',ftPrint);
+
+// ═══ INIT ═══
+load();renderHist();renderLog();updPreview();updFtPreview();
+if(!('BarcodeDetector'in window))overlay.querySelector('span:last-child').textContent='BarcodeDetector nicht verfügbar';else initDet();
+enumCam();
+if(pType()==='standard'&&getM()==='bt')setTimeout(autoReconnect,500);
+})();
+</script>
+</body>
+</html>
