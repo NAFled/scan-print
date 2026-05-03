@@ -201,10 +201,11 @@
         </div>
         <div class="ls-stat"><span id="ls-stat-text">Keine Liste geladen</span><span class="ct" id="ls-stat-count">0 / 0</span></div>
         <div id="ls-warn-box" style="display:none"></div>
+        <button class="btn btn-danger btn-block" id="ls-clear-btn" style="display:none;margin-top:8px">✕ Liste leeren</button>
       </div>
       <div class="card">
         <div class="card-title">Auswahl</div>
-        <div class="ls-bulk"><button id="ls-all">☑ Alle</button><button id="ls-none">☐ Keine</button></div>
+        <div class="ls-bulk"><button id="ls-all">☑ Alle</button><button id="ls-none">☐ Keine</button><button id="ls-every2">Jeden 2.</button><button id="ls-every3">Jeden 3.</button></div>
         <input type="text" class="ls-search" id="ls-search" placeholder="Suchen…">
         <div class="ls-list" id="ls-list"><div class="empty-state" style="padding:30px 20px"><div class="big-icon">📄</div><p>PDF auswählen, um Liste zu erstellen</p></div></div>
       </div>
@@ -567,8 +568,11 @@ if(line.includes(';'))line=line.split(';')[0];else if(line.includes(',')&&!line.
 function lsShowWarn(html){const b=$('ls-warn-box');b.innerHTML='<div class="ls-warn">'+html+'</div>';b.style.display='';}
 function lsHideWarn(){$('ls-warn-box').style.display='none';$('ls-warn-box').innerHTML='';}
 function lsSetMode(m){LS.mode=m;document.querySelectorAll('#ls-mode-toggle button').forEach(b=>b.classList.toggle('active',b.dataset.v===m));['pdf','file','paste'].forEach(k=>{$('ls-mode-'+k).style.display=(k===m)?'':'none';});}
-function updLsCount(){$('ls-stat-count').textContent=LS.sel.size+' / '+LS.items.length;}
-function lsRender(){const e=$('ls-list');if(!LS.items.length){e.innerHTML='<div class="empty-state" style="padding:30px 20px"><div class="big-icon">📄</div><p>PDF auswählen, um Liste zu erstellen</p></div>';return;}const q=($('ls-search').value||'').toLowerCase();const filtered=LS.items.filter(i=>!q||i.text.toLowerCase().includes(q));if(!filtered.length){e.innerHTML='<div class="empty-state" style="padding:30px 20px"><p>Keine Treffer</p></div>';return;}e.innerHTML=filtered.map(it=>{const ck=LS.sel.has(it.id)?'checked':'';const dup=it.dup?'<span class="ls-dup">'+it.dup+'</span>':'';return `<div class="ls-item ${ck}" data-id="${esc(it.id)}"><div class="ls-cb"></div><div class="ls-text">${esc(it.text)}${dup}</div></div>`;}).join('');e.querySelectorAll('.ls-item').forEach(el=>el.addEventListener('click',()=>{const id=el.dataset.id;if(LS.sel.has(id))LS.sel.delete(id);else LS.sel.add(id);el.classList.toggle('checked');updLsCount();updLsPreview();}));}
+function updLsCount(){$('ls-stat-count').textContent=LS.sel.size+' / '+LS.items.length;const btn=$('ls-clear-btn');if(btn)btn.style.display=LS.items.length>0?'':'none';}
+function lsClear(){LS.items=[];LS.sel.clear();$('ls-stat-text').textContent='Keine Liste geladen';lsHideWarn();lsRender();updLsCount();updLsPreview();save();toast('Liste geleert','ok');}
+function lsFiltered(){const q=($('ls-search').value||'').toLowerCase();return LS.items.filter(i=>!q||i.text.toLowerCase().includes(q));}
+function lsSelectEvery(n){if(!LS.items.length){toast('Keine Liste geladen','err');return;}const f=lsFiltered();if(!f.length){toast('Keine Treffer','err');return;}f.forEach(it=>LS.sel.delete(it.id));f.filter((it,i)=>i%n===0).forEach(it=>LS.sel.add(it.id));lsRender();updLsCount();updLsPreview();toast(LS.sel.size+' ausgewählt','ok');}
+function lsRender(){const e=$('ls-list');if(!LS.items.length){e.innerHTML='<div class="empty-state" style="padding:30px 20px"><div class="big-icon">📄</div><p>PDF auswählen, um Liste zu erstellen</p></div>';return;}const filtered=lsFiltered();if(!filtered.length){e.innerHTML='<div class="empty-state" style="padding:30px 20px"><p>Keine Treffer</p></div>';return;}e.innerHTML=filtered.map(it=>{const ck=LS.sel.has(it.id)?'checked':'';const dup=it.dup?'<span class="ls-dup">'+it.dup+'</span>':'';return `<div class="ls-item ${ck}" data-id="${esc(it.id)}"><div class="ls-cb"></div><div class="ls-text">${esc(it.text)}${dup}</div></div>`;}).join('');e.querySelectorAll('.ls-item').forEach(el=>el.addEventListener('click',()=>{const id=el.dataset.id;if(LS.sel.has(id))LS.sel.delete(id);else LS.sel.add(id);el.classList.toggle('checked');updLsCount();updLsPreview();}));}
 function lsLabelPx(){const t=pType(),wm=parseInt($('ls-label-w').value)||50,hm=parseInt($('ls-label-h').value)||30;let dp=DPI203,mx=576;if(t==='niimbot'){const m=NIM_M[$('niimbot-model').value]||NIM_M.B1;dp=m.d;mx=m.mx;}const isLand=LS.orient==='landscape';const wMm=isLand?hm:wm,hMm=isLand?wm:hm;let wp=Math.round(wMm*dp);if(wp>mx)wp=mx;return{wp,hp:Math.round(hMm*dp)};}
 function lsCopies(){const v=parseInt($('ls-copies').value);if(!v||v<1)return 1;if(v>999)return 999;return v;}
 function lsSetCopies(n){n=Math.max(1,Math.min(999,parseInt(n)||1));$('ls-copies').value=n;document.querySelectorAll('.ls-cp-grid .copies-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.cp)===n));}
@@ -631,9 +635,12 @@ $('ft-btn-print-bottom').addEventListener('click',ftPrint);
 $('ls-file-pdf').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(f)lsLoadPdf(f);e.target.value='';});
 $('ls-file-txt').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(f)lsLoadTextFile(f);e.target.value='';});
 $('ls-paste-load').addEventListener('click',lsLoadPaste);
+$('ls-clear-btn').addEventListener('click',()=>{const n=LS.items.length;if(n>0&&confirm('Liste mit '+n+' Einträgen wirklich leeren?'))lsClear();});
 document.querySelectorAll('#ls-mode-toggle button').forEach(b=>b.addEventListener('click',()=>{lsSetMode(b.dataset.v);save();}));
-$('ls-all').addEventListener('click',()=>{LS.sel=new Set(LS.items.map(i=>i.id));lsRender();updLsCount();updLsPreview();});
-$('ls-none').addEventListener('click',()=>{LS.sel.clear();lsRender();updLsCount();updLsPreview();});
+$('ls-all').addEventListener('click',()=>{lsFiltered().forEach(i=>LS.sel.add(i.id));lsRender();updLsCount();updLsPreview();});
+$('ls-none').addEventListener('click',()=>{lsFiltered().forEach(i=>LS.sel.delete(i.id));lsRender();updLsCount();updLsPreview();});
+$('ls-every2').addEventListener('click',()=>lsSelectEvery(2));
+$('ls-every3').addEventListener('click',()=>lsSelectEvery(3));
 $('ls-search').addEventListener('input',lsRender);
 $('ls-print-btn').addEventListener('click',lsPrintAll);
 ['ls-label-w','ls-label-h'].forEach(id=>{$(id).addEventListener('input',()=>{updLsPreview();save();});});
