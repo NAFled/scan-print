@@ -176,11 +176,16 @@
       <div class="card">
         <div class="card-title">Importieren</div>
         <div class="ls-mode" id="ls-mode-toggle">
-          <button data-v="pdf" class="active">📄 PDF</button>
+          <button data-v="paste" class="active">✎ Einfügen</button>
+          <button data-v="pdf">📄 PDF</button>
           <button data-v="file">📎 Text/CSV</button>
-          <button data-v="paste">✎ Einfügen</button>
         </div>
-        <div id="ls-mode-pdf">
+        <div id="ls-mode-paste">
+          <div class="ls-mode-hint">Werte hier einfügen — ein Eintrag pro Zeile.</div>
+          <textarea class="ls-textarea" id="ls-paste" placeholder="WE-Box-01&#10;WE-Box-02&#10;Reception Position-50&#10;…"></textarea>
+          <button class="btn btn-secondary btn-block" id="ls-paste-load" style="margin-top:8px">Liste laden</button>
+        </div>
+        <div id="ls-mode-pdf" style="display:none">
           <div class="ls-mode-hint">PDF-Datei mit eingebettetem Text. Pulpo-Lagerplatz-PDFs enthalten leider keinen extrahierbaren Text — nutze in dem Fall Text/CSV.</div>
           <div class="ls-file-row">
             <label class="fbtn" for="ls-file-pdf">📎 PDF auswählen</label>
@@ -193,11 +198,6 @@
             <label class="fbtn" for="ls-file-txt">📎 Datei auswählen (.txt, .csv)</label>
             <input type="file" id="ls-file-txt" accept=".txt,.csv,text/plain,text/csv">
           </div>
-        </div>
-        <div id="ls-mode-paste" style="display:none">
-          <div class="ls-mode-hint">Werte hier einfügen — ein Eintrag pro Zeile.</div>
-          <textarea class="ls-textarea" id="ls-paste" placeholder="WE-Box-01&#10;WE-Box-02&#10;Reception Position-50&#10;…"></textarea>
-          <button class="btn btn-secondary btn-block" id="ls-paste-load" style="margin-top:8px">Liste laden</button>
         </div>
         <div class="ls-stat"><span id="ls-stat-text">Keine Liste geladen</span><span class="ct" id="ls-stat-count">0 / 0</span></div>
         <div id="ls-warn-box" style="display:none"></div>
@@ -304,7 +304,7 @@ function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g
 function toast(m,t='info'){const e=document.createElement('div');e.className='toast '+t;e.textContent=m;$('toast-container').appendChild(e);setTimeout(()=>e.remove(),2800);}
 function pType(){return document.querySelector('.type-btn.active')?.dataset.ptype||'standard';}
 function getM(){return document.querySelector('.method-btn[data-method].active')?.dataset.method||'http';}
-function getO(){return document.querySelector('.method-btn[data-output].active')?.dataset.output||'qr';}
+function getO(){return document.querySelector('button[data-output].active')?.dataset.output||'qr';}
 function updStatus(t,m){$('printer-dot').className='status-dot '+t;$('printer-status').textContent=m;const ftd=$('ft-printer-dot'),fts=$('ft-printer-status');if(ftd)ftd.className='status-dot '+t;if(fts)fts.textContent=m;const lsd=$('ls-printer-dot'),lss=$('ls-printer-status');if(lsd)lsd.className='status-dot '+t;if(lss)lss.textContent=m;}
 
 // ═══ SETTINGS ═══
@@ -318,11 +318,11 @@ function selType(t){document.querySelectorAll('.type-btn').forEach(b=>b.classLis
 document.querySelectorAll('.type-btn').forEach(b=>b.addEventListener('click',()=>{selType(b.dataset.ptype);save();}));
 function selMethod(m){document.querySelectorAll('.method-btn[data-method]').forEach(b=>b.classList.toggle('active',b.dataset.method===m));document.querySelectorAll('.method-panel').forEach(p=>p.classList.remove('active'));const p=$('panel-'+m);if(p)p.classList.add('active');}
 document.querySelectorAll('.method-btn[data-method]').forEach(b=>b.addEventListener('click',()=>{selMethod(b.dataset.method);save();}));
-function selOut(m){document.querySelectorAll('.method-btn[data-output]').forEach(b=>b.classList.toggle('active',b.dataset.output===m));updPreview();}
-document.querySelectorAll('.method-btn[data-output]').forEach(b=>b.addEventListener('click',()=>{selOut(b.dataset.output);save();}));
-function getOrient(){return document.querySelector('.method-btn[data-orient].active')?.dataset.orient||'portrait';}
-function selOrient(o){document.querySelectorAll('.method-btn[data-orient]').forEach(b=>b.classList.toggle('active',b.dataset.orient===o));updPreview();}
-document.querySelectorAll('.method-btn[data-orient]').forEach(b=>b.addEventListener('click',()=>{selOrient(b.dataset.orient);save();}));
+function selOut(m){document.querySelectorAll('button[data-output]').forEach(b=>b.classList.toggle('active',b.dataset.output===m));updPreview();}
+document.querySelectorAll('button[data-output]').forEach(b=>b.addEventListener('click',()=>{selOut(b.dataset.output);save();}));
+function getOrient(){return document.querySelector('button[data-orient].active')?.dataset.orient||'portrait';}
+function selOrient(o){document.querySelectorAll('button[data-orient]').forEach(b=>b.classList.toggle('active',b.dataset.orient===o));updPreview();}
+document.querySelectorAll('button[data-orient]').forEach(b=>b.addEventListener('click',()=>{selOrient(b.dataset.orient);save();}));
 function getTextGap(){return parseInt($('text-gap').value)||2;}
 $('text-gap').addEventListener('input',()=>{$('gap-val').textContent=$('text-gap').value;updPreview();});
 $('text-gap').addEventListener('change',save);
@@ -556,7 +556,7 @@ function updZpl(){$('zpl-preview').textContent=genPrint(SAMPLE);}
 function updCanvas(){const{wp,hp}=labelPx();const cv=renderLabel(SAMPLE,wp,hp);const dc=$('label-canvas');dc.width=cv.width;dc.height=cv.height;dc.getContext('2d').drawImage(cv,0,0);}
 
 // ═══ LISTE (PDF) ═══
-const LS={items:[],sel:new Set(),outMode:'qr',orient:'portrait',mode:'pdf',sortMode:'alpha'};
+const LS={items:[],sel:new Set(),outMode:'qr',orient:'portrait',mode:'paste',sortMode:'alpha'};
 function lsSort(a,b){return a.toLocaleLowerCase().localeCompare(b.toLocaleLowerCase(),'de',{numeric:true,sensitivity:'base'});}
 function lsBucket(items){const counts={},seen={};for(const t of items){const k=(t||'').trim();if(!k)continue;counts[k]=(counts[k]||0)+1;}const out=[];for(let idx=0;idx<items.length;idx++){const k=(items[idx]||'').trim();if(!k)continue;seen[k]=(seen[k]||0)+1;const i=seen[k]-1,cnt=counts[k];out.push({text:k,dup:cnt>1?(i+1)+'/'+cnt:null,id:k+'#'+i,srcIdx:idx});}return out;}
 async function lsParsePdf(file){if(!window.pdfjsLib){toast('PDF-Library lädt noch','err');return;}const buf=await file.arrayBuffer();const pdf=await window.pdfjsLib.getDocument({data:buf}).promise;const all=[];for(let p=1;p<=pdf.numPages;p++){const page=await pdf.getPage(p);const tc=await page.getTextContent();// Group by approximate Y position to merge multi-span labels
@@ -575,11 +575,13 @@ function lsApplySort(arr){if(LS.sortMode==='source')return arr.slice().sort((a,b
 function lsFiltered(){const q=($('ls-search').value||'').toLowerCase();return lsApplySort(LS.items.filter(i=>!q||i.text.toLowerCase().includes(q)));}
 function lsSelectEvery(n){if(!LS.items.length){toast('Keine Liste geladen','err');return;}const f=lsFiltered();if(!f.length){toast('Keine Treffer','err');return;}f.forEach(it=>LS.sel.delete(it.id));f.filter((it,i)=>i%n===0).forEach(it=>LS.sel.add(it.id));lsRender();updLsCount();updLsPreview();toast(LS.sel.size+' ausgewählt','ok');}
 function lsRender(){const e=$('ls-list');if(!LS.items.length){e.innerHTML='<div class="empty-state" style="padding:30px 20px"><div class="big-icon">📄</div><p>PDF auswählen, um Liste zu erstellen</p></div>';return;}const filtered=lsFiltered();if(!filtered.length){e.innerHTML='<div class="empty-state" style="padding:30px 20px"><p>Keine Treffer</p></div>';return;}e.innerHTML=filtered.map(it=>{const ck=LS.sel.has(it.id)?'checked':'';const dup=it.dup?'<span class="ls-dup">'+it.dup+'</span>':'';return `<div class="ls-item ${ck}" data-id="${esc(it.id)}"><div class="ls-cb"></div><div class="ls-text">${esc(it.text)}${dup}</div></div>`;}).join('');e.querySelectorAll('.ls-item').forEach(el=>el.addEventListener('click',()=>{const id=el.dataset.id;if(LS.sel.has(id))LS.sel.delete(id);else LS.sel.add(id);el.classList.toggle('checked');updLsCount();updLsPreview();}));}
-function lsLabelPx(){const t=pType(),wm=parseInt($('ls-label-w').value)||50,hm=parseInt($('ls-label-h').value)||30;let dp=DPI203,mx=576;if(t==='niimbot'){const m=NIM_M[$('niimbot-model').value]||NIM_M.B1;dp=m.d;mx=m.mx;}const isLand=LS.orient==='landscape';const wMm=isLand?hm:wm,hMm=isLand?wm:hm;let wp=Math.round(wMm*dp);if(wp>mx)wp=mx;return{wp,hp:Math.round(hMm*dp)};}
+function lsLabelPx(){const t=pType(),wm=parseInt($('ls-label-w').value)||50,hm=parseInt($('ls-label-h').value)||30;let dp=DPI203,mx=576;if(t==='niimbot'){const m=NIM_M[$('niimbot-model').value]||NIM_M.B1;dp=m.d;mx=m.mx;}let wp=Math.round(wm*dp);if(wp>mx)wp=mx;return{wp,hp:Math.round(hm*dp)};}
 function lsCopies(){const v=parseInt($('ls-copies').value);if(!v||v<1)return 1;if(v>999)return 999;return v;}
 function lsSetCopies(n){n=Math.max(1,Math.min(999,parseInt(n)||1));$('ls-copies').value=n;document.querySelectorAll('.ls-cp-grid .copies-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.cp)===n));}
 function lsToggleCollapse(id){const el=document.getElementById(id);if(el)el.classList.toggle('collapsed');save();}
-function lsRenderLabel(value,wp,hp){const cv=document.createElement('canvas');cv.width=wp;cv.height=hp;const x=cv.getContext('2d');x.fillStyle='#FFF';x.fillRect(0,0,wp,hp);if(!value)return cv;const margin=Math.round(Math.min(wp,hp)*.04);const fontH=Math.max(6,Math.min(80,parseInt($('ls-font-size').value)||12));const gap=Math.max(0,Math.min(60,parseInt($('ls-text-gap').value)||2));const availH=Math.max(20,hp-margin*2-fontH-gap);const availW=wp-margin*2;if(LS.outMode==='qr'){const sz=Math.min(availW,availH);const qr=qrcode(0,'M');qr.addData(value);qr.make();const cells=qr.getModuleCount();const cell=Math.max(1,Math.floor(sz/cells));const qrSize=cell*cells;const ox=Math.round((wp-qrSize)/2);const oy=margin+Math.round((availH-qrSize)/2);x.fillStyle='#000';for(let r=0;r<cells;r++)for(let c=0;c<cells;c++)if(qr.isDark(r,c))x.fillRect(ox+c*cell,oy+r*cell,cell,cell);}else{const tmp=document.createElement('canvas');try{JsBarcode(tmp,value,{format:'CODE128',displayValue:false,margin:0,height:Math.max(20,availH),width:Math.max(1,Math.floor(availW/100))});const sw=Math.min(tmp.width,availW),sh=Math.min(tmp.height,availH);const ox=Math.round((wp-sw)/2),oy=margin+Math.round((availH-sh)/2);x.drawImage(tmp,0,0,tmp.width,tmp.height,ox,oy,sw,sh);}catch(e){x.fillStyle='#000';x.font='12px monospace';x.fillText('Code128 Fehler',margin,hp/2);}}x.fillStyle='#000';x.textAlign='center';x.textBaseline='top';x.font=fontH+'px sans-serif';x.fillText(value,wp/2,hp-margin-fontH);return cv;}
+function lsRenderLabel(value,wp,hp){const cv=document.createElement('canvas');cv.width=wp;cv.height=hp;const x=cv.getContext('2d');x.fillStyle='#FFF';x.fillRect(0,0,wp,hp);if(!value)return cv;const isLand=LS.orient==='landscape';// Render content into a "virtual" canvas with width and height swapped if landscape, then rotate onto the real canvas
+const cw=isLand?hp:wp,ch=isLand?wp:hp;const tmp=document.createElement('canvas');tmp.width=cw;tmp.height=ch;const tx=tmp.getContext('2d');tx.fillStyle='#FFF';tx.fillRect(0,0,cw,ch);const margin=Math.round(Math.min(cw,ch)*.04);const fontH=Math.max(6,Math.min(80,parseInt($('ls-font-size').value)||12));const gap=Math.max(0,Math.min(60,parseInt($('ls-text-gap').value)||2));const availH=Math.max(20,ch-margin*2-fontH-gap);const availW=cw-margin*2;if(LS.outMode==='qr'){const sz=Math.min(availW,availH);const qr=qrcode(0,'M');qr.addData(value);qr.make();const cells=qr.getModuleCount();const cell=Math.max(1,Math.floor(sz/cells));const qrSize=cell*cells;const ox=Math.round((cw-qrSize)/2);const oy=margin+Math.round((availH-qrSize)/2);tx.fillStyle='#000';for(let r=0;r<cells;r++)for(let c=0;c<cells;c++)if(qr.isDark(r,c))tx.fillRect(ox+c*cell,oy+r*cell,cell,cell);}else{const bcCanvas=document.createElement('canvas');try{JsBarcode(bcCanvas,value,{format:'CODE128',displayValue:false,margin:0,height:Math.max(20,availH),width:Math.max(1,Math.floor(availW/100))});const sw=Math.min(bcCanvas.width,availW),sh=Math.min(bcCanvas.height,availH);const ox=Math.round((cw-sw)/2),oy=margin+Math.round((availH-sh)/2);tx.drawImage(bcCanvas,0,0,bcCanvas.width,bcCanvas.height,ox,oy,sw,sh);}catch(e){tx.fillStyle='#000';tx.font='12px monospace';tx.fillText('Code128 Fehler',margin,ch/2);}}tx.fillStyle='#000';tx.textAlign='center';tx.textBaseline='top';tx.font=fontH+'px sans-serif';tx.fillText(value,cw/2,ch-margin-fontH);// Compose: portrait = direct, landscape = rotate 90° onto real canvas
+if(!isLand){x.drawImage(tmp,0,0);}else{x.save();x.translate(wp,0);x.rotate(Math.PI/2);x.drawImage(tmp,0,0);x.restore();}return cv;}
 function updLsPreview(){const sel=LS.items.find(i=>LS.sel.has(i.id));const v=sel?sel.text:'BEISPIEL';const{wp,hp}=lsLabelPx();const cv=lsRenderLabel(v,wp,hp);const dc=$('ls-canvas');dc.width=cv.width;dc.height=cv.height;dc.getContext('2d').drawImage(cv,0,0);}
 function lsSetToggle(group,val){document.querySelectorAll('#'+group+' button').forEach(b=>b.classList.toggle('active',b.dataset.v===val));}
 async function lsPrintAll(){const sel=lsApplySort(LS.items.filter(i=>LS.sel.has(i.id)));if(!sel.length){toast('Nichts ausgewählt','err');return;}const copies=lsCopies();const total=sel.length;if(!confirm('Bist du sicher, dass du '+total+' QR-Codes drucken möchtest?'+(copies>1?'\n('+copies+' Kopien je Eintrag, gesamt '+(total*copies)+' Etiketten)':'')))return;const t=pType();if(t==='standard'){const lang=$('print-lang').value;if(lang!=='zpl'){if(!confirm('Listen-Druck: Bei '+lang.toUpperCase()+' wird das Original-Format verwendet. Fortfahren?'))return;}}const btn=$('ls-print-btn');const origLabel=btn.innerHTML;btn.disabled=true;let ok=0,fail=0;for(let i=0;i<sel.length;i++){const it=sel[i];btn.innerHTML='⎙ '+(i+1)+' / '+total+' …';try{if(t==='niimbot'){const{wp,hp}=lsLabelPx();const cv=lsRenderLabel(it.text,wp,hp);await printNimCanvas(cv,copies);}else{await lsPrintStd(it.text,copies);}ok++;S.log.unshift({id:Date.now()+i,value:'[Liste] '+it.text,status:'OK',error:'',copies:copies,time:new Date().toLocaleString('de-DE')});}catch(e){fail++;S.log.unshift({id:Date.now()+i,value:'[Liste] '+it.text,status:'ERR',error:e.message||'Fehler',copies:copies,time:new Date().toLocaleString('de-DE')});}await sleep(200);}btn.disabled=false;btn.innerHTML=origLabel;renderLog();save();const msg='Liste fertig: '+ok+' OK'+(fail?', '+fail+' Fehler':'');toast(msg,fail?'err':'ok');updStatus(fail?'err':'ok',msg);}
