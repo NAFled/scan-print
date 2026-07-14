@@ -62,6 +62,19 @@
     return String(s == null ? '' : s).replace(/\^/g, '').replace(/~/g, '');
   }
 
+  // Echte QR-Modulzahl fuer einen Wert bestimmen (Fehlerkorrektur Q, passend zu ^FDQA).
+  // Nutzt die globale qrcode()-Lib, falls vorhanden; sonst konservative Obergrenze,
+  // damit die geschaetzte QR-Groesse nie kleiner als die reale ausfaellt (kein Text-Overlap).
+  function qrModuleCount(value) {
+    try {
+      if (typeof qrcode !== 'undefined') {
+        const q = qrcode(0, 'Q'); q.addData(String(value)); q.make();
+        return q.getModuleCount();
+      }
+    } catch (e) { /* Lib fehlt/Fehler -> Fallback unten */ }
+    return 33;
+  }
+
   // ─────────────────────────────────────────────────────────────
   // Schriftgroessen-Auto-Fit
   // Beruecksichtigt sowohl Zeichenanzahl (Breite) als auch Zeilenanzahl (Hoehe),
@@ -370,7 +383,7 @@
     const fontH = opts.fontSize || 30;
     const gap = Math.max(4, Math.round(dh * 0.01));
     const margin = Math.round(dw * 0.03);
-    const estMod = 21; // grobe Modulzahl fuer die Groessenschaetzung
+    const estMod = qrModuleCount(opts.value); // echte Modulzahl (kein fester Wert -> kein Overlap)
     const maxSz = Math.min(dw - margin * 2, dh - margin * 2 - fontH - gap);
     const mag = Math.max(1, Math.min(10, Math.floor(maxSz / estMod)));
     const qrSz = mag * estMod;
@@ -555,7 +568,7 @@
   // Alles unter window.PrintCore verfuegbar machen.
   global.PrintCore = {
     DPI203, DPI300,
-    mmToDots, clampCopies, round, escapeHtml, stripZplControl,
+    mmToDots, clampCopies, round, escapeHtml, stripZplControl, qrModuleCount,
     calcFitFontSize,
     to1Bit, canvasToZplGfa,
     wrapText, renderTextCanvas, renderCodeLabelCanvas, render2NameCanvas,
